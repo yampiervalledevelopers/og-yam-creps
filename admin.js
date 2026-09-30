@@ -1,4 +1,4 @@
-/**
+﻿/**
  * O'G YAM CREPS — Panel de Administración (admin.js)
  * Firebase Auth + Firestore. Completamente separado de la tienda pública.
  */
@@ -108,6 +108,15 @@ function listenData() {
         renderDashboard();
     });
 
+    db.collection('creditos').orderBy('fechaVenta', 'desc').onSnapshot(snap => {
+        if (typeof creditos !== 'undefined') {
+            creditos = [];
+            snap.forEach(doc => creditos.push({ id: doc.id, ...doc.data() }));
+            if (typeof renderCreditos === 'function') renderCreditos();
+            if (typeof updateClientDatalist === 'function') updateClientDatalist();
+            renderDashboard();
+        }
+    });
     db.collection('ventas').orderBy('fecha', 'desc').onSnapshot(snap => {
         ventas = [];
         snap.forEach(doc => ventas.push({ id: doc.id, ...doc.data() }));
@@ -961,3 +970,50 @@ window.confirmAbono = async function(cuotaIndex) {
         alert('Error: ' + e.message);
     }
 };
+
+window.updateClientDatalist = function() {
+    const dlNombres = $('dl-clientes-nombres');
+    const dlTelefonos = $('dl-clientes-telefonos');
+    if (!dlNombres || !dlTelefonos) return;
+
+    // Get unique names and phones from creditos
+    const nombres = new Set();
+    const telefonos = new Set();
+    // Also we can keep track of pairs so when they type name, we auto-fill phone!
+    window.clientesDirectorio = {};
+
+    creditos.forEach(c => {
+        if (c.clienteNombre) nombres.add(c.clienteNombre);
+        if (c.clienteTelefono) telefonos.add(c.clienteTelefono);
+        if (c.clienteNombre && c.clienteTelefono) {
+            window.clientesDirectorio[c.clienteNombre] = c.clienteTelefono;
+            window.clientesDirectorio[c.clienteTelefono] = c.clienteNombre;
+        }
+    });
+
+    dlNombres.innerHTML = Array.from(nombres).map(n => `<option value="${n}">`).join('');
+    dlTelefonos.innerHTML = Array.from(telefonos).map(t => `<option value="${t}">`).join('');
+};
+
+// Auto-fill logic
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const inputNombre = $('sell-cliente-nombre');
+        const inputTelefono = $('sell-cliente-telefono');
+        
+        if (inputNombre && inputTelefono) {
+            inputNombre.addEventListener('change', (e) => {
+                const val = e.target.value.trim();
+                if (window.clientesDirectorio && window.clientesDirectorio[val]) {
+                    inputTelefono.value = window.clientesDirectorio[val];
+                }
+            });
+            inputTelefono.addEventListener('change', (e) => {
+                const val = e.target.value.trim();
+                if (window.clientesDirectorio && window.clientesDirectorio[val]) {
+                    inputNombre.value = window.clientesDirectorio[val];
+                }
+            });
+        }
+    }, 1000);
+});
