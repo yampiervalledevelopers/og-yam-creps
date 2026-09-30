@@ -2,250 +2,82 @@
 <html lang="es-CO">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>O'G YAM CREPS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>O'G YAM CREPS — Sneakers & Tenis Medellín</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
+    <!-- NAVBAR -->
     <nav class="navbar">
-        <div class="brand">
-            <span class="logo-icon">👟</span>
-            <h1>O'G YAM CREPS</h1>
-        </div>
-        <div class="nav-links">
-            <button id="nav-tienda" class="nav-btn active">Tienda</button>
-            <button id="nav-admin" class="nav-btn">Panel de Control</button>
+        <div class="brand" id="brand-logo">
+            <img src="logo.jpg" alt="O'G YAM CREPS" class="brand-logo-img">
         </div>
     </nav>
 
-    <!-- VISTA 1: TIENDA -->
-    <main id="view-tienda" class="view">
-        <section class="hero">
-            <div class="hero-content">
-                <h2>LOS MEJORES TENIS,<br>AL MEJOR PRECIO.</h2>
-                <p>Medellín, Colombia</p>
-                <a href="#catalog" class="btn-primary">Ver Catálogo</a>
-            </div>
-        </section>
-
-        <section id="catalog" class="catalog">
-            <div class="filters-container">
-                <input type="text" id="search-input" placeholder="Buscar tenis..." class="filter-input">
-                
-                <select id="filter-marca" class="filter-select">
-                    <option value="">Todas las Marcas</option>
-                    <option value="Nike">Nike</option>
-                    <option value="Jordan">Jordan</option>
-                    <option value="Adidas">Adidas</option>
-                    <option value="New Balance">New Balance</option>
-                    <option value="Puma">Puma</option>
-                    <option value="Reebok">Reebok</option>
-                    <option value="Converse">Converse</option>
-                    <option value="Otro">Otro</option>
-                </select>
-
-                <select id="filter-genero" class="filter-select">
-                    <option value="">Todos los Géneros</option>
-                    <option value="Hombre">Hombre</option>
-                    <option value="Mujer">Mujer</option>
-                    <option value="Unisex">Unisex</option>
-                </select>
-            </div>
-
-            <div id="product-grid" class="product-grid">
-                <!-- Products will be injected here by JS -->
-            </div>
-        </section>
-    </main>
-
-    <!-- VISTA 2: PANEL DE CONTROL -->
-    <main id="view-admin" class="view hidden">
-        <div class="admin-header">
-            <h2>Panel de Control</h2>
-            <div class="admin-tabs">
-                <button id="tab-proveedores" class="admin-tab-btn">Proveedores</button>
-                <button id="tab-productos" class="admin-tab-btn active">Productos</button>
-                <button id="tab-ventas" class="admin-tab-btn">Ventas</button>
+    <!-- CARRUSEL DE MARCAS (DOBLE PISO) -->
+    <section class="brands-carousel-section">
+        <div class="carousel-track-wrapper">
+            <div class="carousel-track track-1">
+                <div class="brand-card"><span class="brand-name nike">NIKE</span></div>
+                <div class="brand-card"><span class="brand-name jordan">JORDAN</span></div>
+                <div class="brand-card"><span class="brand-name adidas">ADIDAS</span></div>
+                <div class="brand-card"><span class="brand-name newbalance">NEW BALANCE</span></div>
+                <div class="brand-card"><span class="brand-name puma">PUMA</span></div>
+                <div class="brand-card"><span class="brand-name reebok">REEBOK</span></div>
+                <div class="brand-card"><span class="brand-name converse">CONVERSE</span></div>
+                <div class="brand-card"><span class="brand-name vans">VANS</span></div>
+                <!-- Duplicado para loop infinito -->
+                <div class="brand-card"><span class="brand-name nike">NIKE</span></div>
+                <div class="brand-card"><span class="brand-name jordan">JORDAN</span></div>
+                <div class="brand-card"><span class="brand-name adidas">ADIDAS</span></div>
+                <div class="brand-card"><span class="brand-name newbalance">NEW BALANCE</span></div>
+                <div class="brand-card"><span class="brand-name puma">PUMA</span></div>
+                <div class="brand-card"><span class="brand-name reebok">REEBOK</span></div>
+                <div class="brand-card"><span class="brand-name converse">CONVERSE</span></div>
+                <div class="brand-card"><span class="brand-name vans">VANS</span></div>
             </div>
         </div>
-
-        <!-- Sub-tab: Proveedores -->
-        <section id="admin-proveedores" class="admin-section hidden">
-            <div class="admin-card form-card">
-                <h3>Agregar Proveedor</h3>
-                <form id="form-proveedor" class="admin-form">
-                    <div class="form-group">
-                        <label>Nombre del proveedor</label>
-                        <input type="text" id="prov-nombre" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono/WhatsApp</label>
-                        <input type="tel" id="prov-telefono" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Notas</label>
-                        <textarea id="prov-notas"></textarea>
-                    </div>
-                    <button type="submit" class="btn-primary">Guardar Proveedor</button>
-                </form>
+        <div class="carousel-track-wrapper">
+            <div class="carousel-track track-2">
+                <div class="brand-card"><span class="brand-name vans">VANS</span></div>
+                <div class="brand-card"><span class="brand-name converse">CONVERSE</span></div>
+                <div class="brand-card"><span class="brand-name reebok">REEBOK</span></div>
+                <div class="brand-card"><span class="brand-name puma">PUMA</span></div>
+                <div class="brand-card"><span class="brand-name newbalance">NEW BALANCE</span></div>
+                <div class="brand-card"><span class="brand-name adidas">ADIDAS</span></div>
+                <div class="brand-card"><span class="brand-name jordan">JORDAN</span></div>
+                <div class="brand-card"><span class="brand-name nike">NIKE</span></div>
+                <!-- Duplicado para loop infinito -->
+                <div class="brand-card"><span class="brand-name vans">VANS</span></div>
+                <div class="brand-card"><span class="brand-name converse">CONVERSE</span></div>
+                <div class="brand-card"><span class="brand-name reebok">REEBOK</span></div>
+                <div class="brand-card"><span class="brand-name puma">PUMA</span></div>
+                <div class="brand-card"><span class="brand-name newbalance">NEW BALANCE</span></div>
+                <div class="brand-card"><span class="brand-name adidas">ADIDAS</span></div>
+                <div class="brand-card"><span class="brand-name jordan">JORDAN</span></div>
+                <div class="brand-card"><span class="brand-name nike">NIKE</span></div>
             </div>
-            <div class="admin-card list-card">
-                <h3>Lista de Proveedores</h3>
-                <div id="proveedores-list" class="list-container"></div>
-            </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Sub-tab: Productos -->
-        <section id="admin-productos" class="admin-section active">
-            <!-- KPI Dashboard -->
-            <div class="kpi-dashboard">
-                <div class="kpi-card">
-                    <h4>Total Invertido</h4>
-                    <p id="kpi-invertido">$0</p>
-                </div>
-                <div class="kpi-card">
-                    <h4>Valor de Venta Potencial</h4>
-                    <p id="kpi-venta-potencial">$0</p>
-                </div>
-                <div class="kpi-card">
-                    <h4>Ganancia Potencial</h4>
-                    <p id="kpi-ganancia-potencial">$0</p>
-                </div>
-                <div class="kpi-card">
-                    <h4>Ganancia Realizada</h4>
-                    <p id="kpi-ganancia-realizada">$0</p>
-                </div>
-                <div class="kpi-card">
-                    <h4>Productos en Stock</h4>
-                    <p id="kpi-stock">0</p>
-                </div>
-                <div class="kpi-card breakdown">
-                    <h4>Desglose por Proveedor</h4>
-                    <div id="kpi-proveedores-breakdown"></div>
-                </div>
-            </div>
-
-            <div class="admin-layout">
-                <!-- Product Form -->
-                <div class="admin-card form-card">
-                    <h3>Agregar Producto (Fast Entry)</h3>
-                    <form id="form-producto" class="admin-form">
-                        <div class="form-row">
-                            <div class="form-group flex-1">
-                                <label>Proveedor *</label>
-                                <select id="prod-proveedor" required></select>
-                            </div>
-                            <div class="form-group flex-2">
-                                <label>Nombre del producto *</label>
-                                <input type="text" id="prod-nombre" required placeholder="Ej: Nike Air Force 1">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Marca</label>
-                                <select id="prod-marca">
-                                    <option value="Nike">Nike</option>
-                                    <option value="Jordan">Jordan</option>
-                                    <option value="Adidas">Adidas</option>
-                                    <option value="New Balance">New Balance</option>
-                                    <option value="Puma">Puma</option>
-                                    <option value="Reebok">Reebok</option>
-                                    <option value="Converse">Converse</option>
-                                    <option value="Otro">Otro</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Género</label>
-                                <select id="prod-genero">
-                                    <option value="Hombre">Hombre</option>
-                                    <option value="Mujer">Mujer</option>
-                                    <option value="Unisex">Unisex</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Color</label>
-                                <input type="text" id="prod-color">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Descripción</label>
-                            <input type="text" id="prod-descripcion" placeholder="Breve descripción (opcional)">
-                        </div>
-
-                        <div class="form-group photo-upload">
-                            <label>Foto URL (Pega el link de la imagen)</label>
-                            <input type="text" id="prod-foto" placeholder="https://...">
-                            <img id="prod-foto-preview" class="thumbnail-preview hidden" alt="Vista previa">
-                        </div>
-
-                        <!-- QUICK SIZE-STOCK GRID -->
-                        <div class="form-group size-grid-group">
-                            <label>Tallas y Stock (Clic para activar, luego edita cant.)</label>
-                            <div id="size-stock-grid" class="size-stock-grid">
-                                <!-- JS will generate sizes 35 to 45 here -->
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Costo Proveedor (COP) *</label>
-                                <input type="number" id="prod-costo-prov" required class="calc-input">
-                            </div>
-                            <div class="form-group">
-                                <label>Costo Envío (COP)</label>
-                                <input type="number" id="prod-costo-envio" value="0" class="calc-input">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <p class="calc-result">Costo Total: <span id="calc-costo-total">$0</span></p>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Precio Venta (COP) *</label>
-                                <input type="number" id="prod-precio-venta" required class="calc-input">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <p class="calc-result highlight">Ganancia: <span id="calc-ganancia">$0</span> | Margen: <span id="calc-margen">0%</span></p>
-                        </div>
-
-                        <button type="submit" class="btn-primary w-full">Guardar Producto</button>
-                    </form>
-                </div>
-
-                <!-- Product List -->
-                <div class="admin-card list-card">
-                    <h3>Inventario</h3>
-                    <div id="productos-list" class="list-container"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Sub-tab: Ventas -->
-        <section id="admin-ventas" class="admin-section hidden">
-            <div class="kpi-dashboard single-kpi">
-                <div class="kpi-card highlight">
-                    <h4>Ganancia Total Realizada</h4>
-                    <p id="kpi-ventas-total">$0</p>
-                </div>
-            </div>
-            <div class="admin-card list-card">
-                <h3>Registro de Ventas</h3>
-                <div id="ventas-list" class="list-container"></div>
-            </div>
-        </section>
+    <!-- PRODUCTOS EN PROMOCIÓN -->
+    <main id="view-tienda" class="view">
+        <div id="product-grid" class="product-grid"></div>
     </main>
 
+    <!-- FOOTER -->
     <footer class="site-footer">
-        <p>O'G YAM CREPS © 2026</p>
-        <p>WhatsApp: <a href="https://wa.me/573128663161" target="_blank" class="footer-wa">312 866 3161</a></p>
+        <img src="logo.jpg" alt="O'G YAM CREPS" style="max-width:120px; margin-bottom:0.5rem; filter:drop-shadow(0 0 8px var(--neon-green-glow));">
+        <p>© 2026 · Medellín, Colombia</p>
+        <p>Pedidos y asesoría WhatsApp: <a href="https://wa.me/573128663161" target="_blank" class="footer-wa">312 866 3161</a></p>
     </footer>
 
     <!-- PRODUCT DETAIL MODAL -->
@@ -261,32 +93,16 @@
                     <h2 id="modal-title"></h2>
                     <p id="modal-price" class="price"></p>
                     <p id="modal-desc" class="desc"></p>
-                    
                     <div class="modal-sizes">
                         <h3>Selecciona tu Talla:</h3>
                         <div id="modal-size-selector" class="size-selector"></div>
                     </div>
-                    
-                    <button id="modal-wa-btn" class="btn-wa">Comprar por WhatsApp 💬</button>
+                    <button id="modal-wa-btn" class="btn-wa">Pedir por WhatsApp 💬</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SELL PRODUCT MODAL (ADMIN) -->
-    <div id="sell-modal" class="modal hidden">
-        <div class="modal-content small-modal">
-            <button id="sell-modal-close" class="modal-close">&times;</button>
-            <h3>Marcar como Vendido</h3>
-            <p id="sell-product-name"></p>
-            <div class="form-group">
-                <label>¿Qué talla se vendió?</label>
-                <select id="sell-size-select"></select>
-            </div>
-            <button id="confirm-sell-btn" class="btn-primary w-full">Confirmar Venta</button>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+    <script src="store.js"></script>
 </body>
 </html>
