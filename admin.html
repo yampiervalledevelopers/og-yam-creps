@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es-CO">
 <head>
     <meta charset="UTF-8">
@@ -49,6 +49,27 @@
                 <button type="submit" id="login-submit-btn" class="btn-primary w-full">Ingresar</button>
             </form>
         </div>
+        <!-- Sub-tab: Créditos -->
+        <section id="admin-creditos" class="admin-section hidden">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <h4 style="color:var(--text-muted);">Total por Cobrar</h4>
+                    <p id="kpi-creditos-total" class="kpi-value" style="color:var(--neon-green);"></p>
+                </div>
+                <div class="kpi-card">
+                    <h4 style="color:var(--text-muted);">Créditos Activos</h4>
+                    <p id="kpi-creditos-activos" class="kpi-value">0</p>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid #ff3333;">
+                    <h4 style="color:var(--text-muted);">Mora Total</h4>
+                    <p id="kpi-creditos-mora" class="kpi-value" style="color:#ff3333;"></p>
+                </div>
+            </div>
+            <div class="admin-card" style="margin-top:2rem;">
+                <h3>Cartera de Clientes</h3>
+                <div id="creditos-list" class="list-container"></div>
+            </div>
+        </section>
     </main>
 
     <!-- PANEL DE CONTROL (SOLO VISIBLE TRAS LOGIN) -->
@@ -65,6 +86,7 @@
                 <button id="tab-promos" class="admin-tab-btn">🔥 Promociones</button>
                 <button id="tab-proveedores" class="admin-tab-btn">📦 Proveedores</button>
                 <button id="tab-ventas" class="admin-tab-btn">💰 Ventas</button>
+                <button id="tab-creditos" class="admin-tab-btn">💳 Créditos</button>
             </div>
         </div>
 
@@ -260,10 +282,65 @@
                 <label>¿Qué talla se vendió?</label>
                 <select id="sell-size-select" style="margin-top:0.5rem; width:100%; padding:0.8rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);"></select>
             </div>
+            <div class="form-group" style="margin-top:1rem;">
+                <label>Método de Pago</label>
+                <select id="sell-metodo-select" style="margin-top:0.5rem; width:100%; padding:0.8rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);">
+                    <option value="contado">💰 Contado</option>
+                    <option value="credito">💳 Crédito / Cuotas</option>
+                </select>
+            </div>
+            
+            <div id="sell-credito-fields" class="hidden" style="margin-top:1rem; padding:1rem; background:#1a1a1a; border-radius:var(--radius-sm); border:1px solid #333;">
+                <h4 style="margin-bottom:0.5rem; color:var(--neon-green);">Datos del Crédito</h4>
+                <div class="form-group" style="margin-bottom:0.8rem;">
+                    <label>Nombre del Cliente</label>
+                    <input type="text" id="sell-cliente-nombre" placeholder="Ej: Juan Pérez" style="width:100%; padding:0.6rem;">
+                </div>
+                <div class="form-group" style="margin-bottom:0.8rem;">
+                    <label>Teléfono / WhatsApp</label>
+                    <input type="number" id="sell-cliente-telefono" placeholder="3000000000" style="width:100%; padding:0.6rem;">
+                </div>
+                <div class="form-group" style="margin-bottom:0.8rem;">
+                    <label>Abono Inicial ($)</label>
+                    <input type="number" id="sell-credito-abono" placeholder="0" value="0" style="width:100%; padding:0.6rem;">
+                </div>
+                <div style="display:flex; gap:0.5rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Cuotas</label>
+                        <select id="sell-credito-cuotas" style="width:100%; padding:0.6rem;">
+                            <option value="1">1 cuota</option>
+                            <option value="2">2 cuotas</option>
+                            <option value="3">3 cuotas</option>
+                            <option value="4">4 cuotas</option>
+                            <option value="5">5 cuotas</option>
+                            <option value="6">6 cuotas</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Frecuencia</label>
+                        <select id="sell-credito-frecuencia" style="width:100%; padding:0.6rem;">
+                            <option value="15">Quincenal</option>
+                            <option value="30">Mensual</option>
+                            <option value="7">Semanal</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
             <button id="confirm-sell-btn" class="btn-primary w-full" style="margin-top:1rem;">Confirmar Venta 💵</button>
         </div>
     </div>
 
+    <!-- PAYMENT (ABONO) MODAL -->
+    <div id="abono-modal" class="modal hidden">
+        <div class="modal-content small-modal">
+            <button id="abono-modal-close" class="modal-close">&times;</button>
+            <h3 style="color:var(--neon-green);">Registrar Pago de Cuota</h3>
+            <p id="abono-cliente-nombre" style="margin-bottom:1rem; font-weight:600;"></p>
+            <div id="abono-cuotas-list" style="margin-bottom:1rem; max-height:200px; overflow-y:auto; background:#111; padding:0.5rem; border-radius:var(--radius-sm); border:1px solid #333;">
+            </div>
+            <button id="confirm-abono-btn" class="btn-primary w-full" style="margin-top:1rem;">Guardar Cambios 💾</button>
+        </div>
+    </div>
     <script src="admin.js"></script>
 </body>
 </html>

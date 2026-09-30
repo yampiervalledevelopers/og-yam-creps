@@ -452,6 +452,14 @@ function initSellModal() {
     $('sell-modal-close')?.addEventListener('click', () => $('sell-modal').classList.add('hidden'));
     $('sell-modal')?.addEventListener('click', e => { if (e.target === $('sell-modal')) $('sell-modal').classList.add('hidden'); });
     $('confirm-sell-btn')?.addEventListener('click', confirmSale);
+    $('sell-metodo-select')?.addEventListener('change', e => {
+        const isCredito = e.target.value === 'credito';
+        const fields = $('sell-credito-fields');
+        if (fields) {
+            if (isCredito) fields.classList.remove('hidden');
+            else fields.classList.add('hidden');
+        }
+    });
 }
 
 window.promptSell = id => {
@@ -491,18 +499,31 @@ window.promptSell = id => {
 async function confirmSale() {
     const select = $('sell-size-select');
     const origen = $('sell-origen-select').value;
+    const metodo = $('sell-metodo-select')?.value || 'contado';
     if (!select?.value || !currentSoldProduct) { alert('Selecciona la talla vendida.'); return; }
     
+    let clienteNombre = '', clienteTelefono = '', cuotasCount = 1, frecuenciaDias = 15, abonoInicial = 0;
+    if (metodo === 'credito') {
+        clienteNombre = $('sell-cliente-nombre').value.trim();
+        clienteTelefono = $('sell-cliente-telefono').value.trim();
+        cuotasCount = parseInt($('sell-credito-cuotas').value) || 1;
+        frecuenciaDias = parseInt($('sell-credito-frecuencia').value) || 15;
+        abonoInicial = parseFloat($('sell-credito-abono').value) || 0;
+        
+        if (!clienteNombre || !clienteTelefono) {
+            alert('Debes ingresar el nombre y teléfono del cliente.');
+            return;
+        }
+    }
+
     const size = select.value, prod = currentSoldProduct;
     const sourceDict = origen === 'bodega' ? prod.tallasBodega : prod.tallasProveedor;
     
     if (!sourceDict[size] || sourceDict[size] <= 0) { alert('Sin stock en ' + origen); return; }
 
-    // Deduct stock
     sourceDict[size] -= 1;
     if (sourceDict[size] === 0) delete sourceDict[size];
     
-    // Update combined tallas
     prod.tallas = prod.tallas || {};
     if (prod.tallas[size] && prod.tallas[size] > 0) {
         prod.tallas[size] -= 1;
@@ -512,26 +533,71 @@ async function confirmSale() {
     const prov = providers.find(p => p.id === prod.proveedorId);
     const costoTotal = (prod.costoProveedor || 0) + (prod.costoEnvio || 0);
     const ganancia = (prod.precioVenta || 0) - costoTotal;
+    const now = Date.now();
 
     try {
-        await db.collection('ventas').add({
+        const batch = db.batch();
+        
+        const ventaRef = db.collection('ventas').doc();
+        batch.set(ventaRef, {
             productoId: prod.id, nombreProducto: prod.nombre, marca: prod.marca,
             talla: size, precioVenta: prod.precioVenta, costoTotal, ganancia,
             proveedor: prov ? prov.nombre : 'Local', 
             origen: origen,
-            fecha: Date.now()
+            metodo: metodo,
+            fecha: now
         });
         
-        await db.collection('productos').doc(prod.id).update({ 
+        const prodRef = db.collection('productos').doc(prod.id);
+        batch.update(prodRef, { 
             tallasBodega: prod.tallasBodega,
             tallasProveedor: prod.tallasProveedor,
             tallas: prod.tallas, 
             vendidos: (prod.vendidos || 0) + 1 
         });
+
+        if (metodo === 'credito') {
+            const saldoRestante = prod.precioVenta - abonoInicial;
+            const montoPorCuota = Math.round(saldoRestante / cuotasCount);
+            
+            const cuotasArray = [];
+            for (let i = 1; i <= cuotasCount; i++) {
+                cuotasArray.push({
+                    numero: i,
+                    fechaVencimiento: now + (frecuenciaDias * 24 * 60 * 60 * 1000 * i),
+                    monto: montoPorCuota,
+                    pagado: false,
+                    fechaPago: null
+                });
+            }
+
+            const creditoRef = db.collection('creditos').doc();
+            batch.set(creditoRef, {
+                clienteNombre,
+                clienteTelefono,
+                productoId: prod.id,
+                nombreProducto: prod.nombre,
+                precioTotal: prod.precioVenta,
+                abonoInicial,
+                saldoPendiente: saldoRestante,
+                cuotas: cuotasArray,
+                fechaVenta: now,
+                estado: 'activo'
+            });
+        }
+        
+        await batch.commit();
         
         $('sell-modal').classList.add('hidden');
         currentSoldProduct = null;
-        alert(`¡Venta registrada de ${origen}! Ganancia: ${formatCOP(ganancia)} 🎉`);
+        
+        if (metodo === 'credito') {
+            $('sell-cliente-nombre').value = '';
+            $('sell-cliente-telefono').value = '';
+            $('sell-credito-abono').value = '0';
+        }
+        
+        alert(`¡Venta registrada (${metodo})! 🎉`);
     } catch (e) { alert("Error: " + e.message); }
 }
 
@@ -762,3 +828,136 @@ function getTotalStock(prod) {
     if (!prod?.tallas) return 0;
     return Object.values(prod.tallas).reduce((s, q) => s + (parseInt(q) || 0), 0);
 }
+
+// ==========================================
+// CREDITOS
+// ==========================================
+window.creditos = [];
+let currentAbonoCredito = null;
+
+window.renderCreditos = function() {
+    const list = $('creditos-list');
+    const totalEl = $('kpi-creditos-total');
+    const activosEl = $('kpi-creditos-activos');
+    const moraEl = $('kpi-creditos-mora');
+    
+    if (!list) return;
+
+    let totalPorCobrar = 0;
+    let activos = 0;
+    let totalMora = 0;
+    const now = Date.now();
+
+    const activosList = creditos.filter(c => c.estado === 'activo');
+    activosList.forEach(c => {
+        totalPorCobrar += (c.saldoPendiente || 0);
+        activos++;
+        const nextCuota = c.cuotas.find(q => !q.pagado);
+        if (nextCuota && nextCuota.fechaVencimiento < now) {
+            totalMora += nextCuota.monto;
+        }
+    });
+
+    if (totalEl) totalEl.textContent = formatCOP(totalPorCobrar);
+    if (activosEl) activosEl.textContent = activos;
+    if (moraEl) moraEl.textContent = formatCOP(totalMora);
+
+    if (activosList.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No hay créditos activos. 🎉</p>';
+        return;
+    }
+
+    list.innerHTML = activosList.map(c => {
+        const nextCuota = c.cuotas.find(q => !q.pagado);
+        const totalPagado = (c.precioTotal || 0) - (c.saldoPendiente || 0);
+        let statusHtml = '';
+        let statusMsg = '';
+        
+        if (nextCuota) {
+            const daysDiff = Math.floor((nextCuota.fechaVencimiento - now) / (1000 * 60 * 60 * 24));
+            if (daysDiff < 0) {
+                statusHtml = `<span style="color:#ff3333; font-weight:bold;">Vencido (Mora de ${Math.abs(daysDiff)} días)</span>`;
+                statusMsg = `Hola ${c.clienteNombre}, tu cuota de ${formatCOP(nextCuota.monto)} por tus ${c.nombreProducto} venció hace ${Math.abs(daysDiff)} días. Por favor realiza el pago lo antes posible para evitar recargos por mora.`;
+            } else if (daysDiff <= 3) {
+                statusHtml = `<span style="color:#ffaa00;">Próximo a vencer (${daysDiff} días)</span>`;
+                statusMsg = `Hola ${c.clienteNombre}, te recordamos que tu próxima cuota de ${formatCOP(nextCuota.monto)} por tus ${c.nombreProducto} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}. ¡Gracias por tu puntualidad!`;
+            } else {
+                statusHtml = `<span style="color:var(--neon-green);">Al día</span>`;
+                statusMsg = `Hola ${c.clienteNombre}, un saludo. Solo para tenerlo en el radar, tu próxima cuota de ${formatCOP(nextCuota.monto)} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}.`;
+            }
+        }
+
+        const encodedMsg = encodeURIComponent(statusMsg);
+
+        return `<div class="list-item" style="flex-wrap:wrap; gap:0.8rem; align-items:flex-start;">
+            <div style="flex:1; min-width:200px;">
+                <h4 style="margin:0; color:var(--neon-green);">${c.clienteNombre}</h4>
+                <p style="margin:0.2rem 0; font-size:0.85rem;">📞 ${c.clienteTelefono}</p>
+                <p style="margin:0; font-size:0.9rem;"><strong>Tenis:</strong> ${c.nombreProducto}</p>
+                <p style="margin:0; font-size:0.9rem;"><strong>Deuda Restante:</strong> ${formatCOP(c.saldoPendiente)} de ${formatCOP(c.precioTotal)}</p>
+                <p style="margin:0.2rem 0 0 0; font-size:0.85rem;">Estado: ${statusHtml}</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
+                <button class="btn-action sell" onclick="promptAbono('${c.id}')">💰 Registrar Abono</button>
+                <a href="https://wa.me/57${c.clienteTelefono}?text=${encodedMsg}" target="_blank" class="btn-action" style="background:#25D366; color:#000; text-decoration:none; text-align:center; padding:0.4rem 1rem;">💬 Enviar WhatsApp</a>
+            </div>
+        </div>`;
+    }).join('');
+};
+
+window.promptAbono = function(creditoId) {
+    const cred = creditos.find(c => c.id === creditoId);
+    if (!cred) return;
+    currentAbonoCredito = cred;
+    
+    $('abono-cliente-nombre').textContent = cred.clienteNombre + " - " + cred.nombreProducto;
+    
+    const list = $('abono-cuotas-list');
+    list.innerHTML = cred.cuotas.map((q, idx) => {
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:0.5rem; border-bottom:1px solid #333;">
+            <div>
+                <strong>Cuota ${q.numero}</strong> <br>
+                <small>${formatDate(q.fechaVencimiento).split(' ')[0]} - ${formatCOP(q.monto)}</small>
+            </div>
+            <div>
+                ${q.pagado ? 
+                    '<span style="color:var(--neon-green)">Pagado</span>' : 
+                    `<button class="btn-action sell" style="padding:0.3rem 0.8rem;" onclick="confirmAbono(${idx})">Pagar</button>`
+                }
+            </div>
+        </div>`;
+    }).join('');
+    
+    $('abono-modal').classList.remove('hidden');
+};
+
+$('abono-modal-close')?.addEventListener('click', () => $('abono-modal').classList.add('hidden'));
+
+window.confirmAbono = async function(cuotaIndex) {
+    if (!currentAbonoCredito) return;
+    const cred = currentAbonoCredito;
+    const cuota = cred.cuotas[cuotaIndex];
+    
+    if (cuota.pagado) return;
+    
+    cuota.pagado = true;
+    cuota.fechaPago = Date.now();
+    
+    cred.saldoPendiente -= cuota.monto;
+    if (cred.saldoPendiente <= 0) {
+        cred.saldoPendiente = 0;
+        cred.estado = 'pagado';
+    }
+    
+    try {
+        await db.collection('creditos').doc(cred.id).update({
+            cuotas: cred.cuotas,
+            saldoPendiente: cred.saldoPendiente,
+            estado: cred.estado
+        });
+        alert('Pago registrado correctamente. ✅');
+        $('abono-modal').classList.add('hidden');
+    } catch(e) {
+        alert('Error: ' + e.message);
+    }
+};
