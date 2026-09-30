@@ -176,14 +176,32 @@ function initPhotoUpload() {
     if (fileInput) {
         fileInput.addEventListener('change', async e => {
             const files = Array.from(e.target.files);
+            const label = document.querySelector('label[for="prod-foto-file"]');
+            const oldLabel = label ? label.innerHTML : '';
+            
+            if (label) label.innerHTML = '⏳ Subiendo fotos a Storage...';
+
             for (let file of files) {
                 try {
-                    const compressed = await compressImage(file, 800, 0.75);
-                    currentPhotos.push(compressed);
+                    // Seguimos comprimiendo para cuidar los 5GB del plan gratis
+                    const compressedBase64 = await compressImage(file, 800, 0.75);
+                    
+                    // Subir a Firebase Storage
+                    const ext = file.name.split('.').pop() || 'jpg';
+                    const fileName = Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + ext;
+                    const storageRef = firebase.storage().ref('productos/' + fileName);
+                    
+                    const snapshot = await storageRef.putString(compressedBase64, 'data_url');
+                    const downloadUrl = await snapshot.ref.getDownloadURL();
+                    
+                    currentPhotos.push(downloadUrl);
                 } catch (err) {
-                    console.error("Error comprimiendo:", err);
+                    console.error("Error subiendo a Storage:", err);
+                    alert("Error al subir imagen a Storage.\n\n" + err.message + "\n\nNOTA: Asegúrate de haber entrado a Firebase Console > Storage > Comenzar (en Modo Prueba) para habilitar el servicio.");
                 }
             }
+            
+            if (label) label.innerHTML = oldLabel || '📸 Elegir fotos (celular/galería)';
             renderPhotosGrid();
             fileInput.value = ''; // reset
         });
@@ -200,7 +218,6 @@ function initPhotoUpload() {
         });
     }
 }
-
 function compressImage(file, maxWidth = 800, quality = 0.75) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
