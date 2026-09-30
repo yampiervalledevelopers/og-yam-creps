@@ -79,12 +79,14 @@ function renderStore() {
         let precioFinal = pVenta - (pVenta * desc / 100);
         let hotClass = desc >= 15 ? 'hot' : '';
         
+        let mainPhoto = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
+        
         return `
         <div class="product-card" onclick="openProductModal('${prod.id}')">
             <div class="card-img-wrapper">
                 ${desc > 0 ? `<div class="promo-badge ${hotClass}">-${desc}% OFF ${desc>=15?'🔥':''}</div>` : ''}
-                ${prod.foto
-                    ? `<img src="${prod.foto}" class="card-img" onerror="this.src='';">`
+                ${mainPhoto
+                    ? `<img src="${mainPhoto}" class="card-img" onerror="this.src='';">`
                     : `<div class="card-no-img">👟</div>`}
             </div>
             <div class="card-content">
@@ -109,14 +111,43 @@ function initModals() {
     });
 }
 
+window.changeModalImg = function(url) {
+    const img = $('modal-img');
+    if (img) img.src = url;
+};
+
 window.openProductModal = id => {
     const prod = products.find(p => p.id === id);
     if (!prod) return;
     const modal = $('product-modal');
 
     const img = $('modal-img');
-    if (prod.foto) { img.src = prod.foto; img.style.display = 'block'; }
-    else img.style.display = 'none';
+    let photos = prod.fotos || (prod.foto ? [prod.foto] : []);
+    
+    // Inject thumbnails if multiple
+    let thumbHtml = '';
+    if (photos.length > 1) {
+        thumbHtml = `<div style="display:flex; gap:0.5rem; justify-content:center; padding: 0.5rem; overflow-x:auto;">` + 
+            photos.map(url => `<img src="${url}" onclick="changeModalImg('${url}')" style="width:50px; height:50px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid #333;">`).join('') +
+            `</div>`;
+    }
+    
+    let container = img.parentElement;
+    let existingThumbs = container.querySelector('.modal-thumbs-container');
+    if (existingThumbs) existingThumbs.remove();
+    
+    if (photos.length > 0) {
+        img.src = photos[0];
+        img.style.display = 'block';
+        if (thumbHtml) {
+            let div = document.createElement('div');
+            div.className = 'modal-thumbs-container';
+            div.innerHTML = thumbHtml;
+            container.appendChild(div);
+        }
+    } else {
+        img.style.display = 'none';
+    }
 
     let desc = prod.descuento || (prod.fakePromo ? 10 : 0);
     // If it's a fake promo (fallback), we need to ensure the modal shows the same fake discount

@@ -162,20 +162,24 @@
                         </div>
 
                         <div class="form-group photo-upload">
-                            <label>Foto del producto</label>
-                            <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:0.5rem;">
-                                <label for="prod-foto-file" class="btn-primary" style="text-align:center; cursor:pointer; padding:0.7rem 1rem; font-size:0.95rem; display:block; border-radius:var(--radius-sm);">
-                                    📸 Elegir foto de mi celular / galería
+                            <label>Fotos del producto</label>
+                            
+                            <!-- Contenedor de miniaturas -->
+                            <div id="fotos-preview-grid" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.8rem;">
+                                <!-- Se llenará con JS -->
+                            </div>
+
+                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                                <label for="prod-foto-file" class="btn-primary" style="text-align:center; cursor:pointer; padding:0.7rem 1rem; font-size:0.95rem; border-radius:var(--radius-sm);">
+                                    📷 Elegir fotos (celular/galería)
                                 </label>
-                                <input type="file" id="prod-foto-file" accept="image/*" style="display:none;">
+                                <input type="file" id="prod-foto-file" accept="image/*" multiple style="display:none;">
+                                
                                 <div style="display:flex; align-items:center; gap:0.5rem;">
                                     <span style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap;">o link:</span>
-                                    <input type="text" id="prod-foto" placeholder="https://..." style="font-size:0.85rem;">
+                                    <input type="text" id="prod-foto-link" placeholder="https://..." style="font-size:0.85rem; flex:1;">
+                                    <button type="button" id="btn-add-link" class="btn-secondary" style="padding:0.6rem 0.8rem; border-radius:var(--radius-sm);">Añadir</button>
                                 </div>
-                            </div>
-                            <div id="preview-wrapper" style="position:relative; display:inline-block; margin-top:0.3rem;" class="hidden">
-                                <img id="prod-foto-preview" class="thumbnail-preview" alt="Vista previa" style="max-height:140px; border-radius:var(--radius-sm); border:1px solid var(--neon-green);">
-                                <button type="button" id="btn-remove-foto" style="position:absolute; top:4px; right:4px; background:rgba(255,0,0,0.85); color:#fff; border-radius:50%; width:24px; height:24px; font-weight:bold; border:none; cursor:pointer;">&times;</button>
                             </div>
                         </div>
 

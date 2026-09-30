@@ -135,42 +135,53 @@ function initTabs() {
 // ==========================================
 // FOTO: Subir desde celular / galería
 // ==========================================
+window.currentPhotos = [];
+
+window.renderPhotosGrid = function() {
+    const grid = $('fotos-preview-grid');
+    if (!grid) return;
+    grid.innerHTML = currentPhotos.map((url, idx) => `
+        <div style="position:relative; display:inline-block;">
+            <img src="${url}" style="width:70px; height:70px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid #333;">
+            <button type="button" onclick="removePhoto(${idx})" style="position:absolute; top:-5px; right:-5px; background:red; color:#fff; border-radius:50%; width:20px; height:20px; border:none; cursor:pointer; font-size:12px; font-weight:bold;">X</button>
+        </div>
+    `).join('');
+};
+
+window.removePhoto = function(idx) {
+    currentPhotos.splice(idx, 1);
+    renderPhotosGrid();
+};
+
 function initPhotoUpload() {
     const fileInput = $('prod-foto-file');
-    const urlInput = $('prod-foto');
-    const preview = $('prod-foto-preview');
-    const wrapper = $('preview-wrapper');
-    const btnRemove = $('btn-remove-foto');
+    const linkInput = $('prod-foto-link');
+    const btnAddLink = $('btn-add-link');
 
     if (fileInput) {
         fileInput.addEventListener('change', async e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            try {
-                const compressed = await compressImage(file, 800, 0.75);
-                urlInput.value = compressed;
-                preview.src = compressed;
-                wrapper.classList.remove('hidden');
-            } catch (err) {
-                alert("No se pudo procesar la imagen.");
+            const files = Array.from(e.target.files);
+            for (let file of files) {
+                try {
+                    const compressed = await compressImage(file, 800, 0.75);
+                    currentPhotos.push(compressed);
+                } catch (err) {
+                    console.error("Error comprimiendo:", err);
+                }
             }
+            renderPhotosGrid();
+            fileInput.value = ''; // reset
         });
     }
 
-    if (urlInput) {
-        urlInput.addEventListener('input', () => {
-            const val = urlInput.value.trim();
-            if (val) { preview.src = val; wrapper.classList.remove('hidden'); }
-            else wrapper.classList.add('hidden');
-        });
-    }
-
-    if (btnRemove) {
-        btnRemove.addEventListener('click', () => {
-            if (fileInput) fileInput.value = '';
-            if (urlInput) urlInput.value = '';
-            preview.src = '';
-            wrapper.classList.add('hidden');
+    if (btnAddLink && linkInput) {
+        btnAddLink.addEventListener('click', () => {
+            const val = linkInput.value.trim();
+            if (val) {
+                currentPhotos.push(val);
+                renderPhotosGrid();
+                linkInput.value = '';
+            }
         });
     }
 }
@@ -229,7 +240,8 @@ function initProductForm() {
             marca: $('prod-marca').value,
             genero: $('prod-genero').value,
             color: $('prod-color')?.value.trim() || '',
-            foto: $('prod-foto')?.value.trim() || '',
+            fotos: currentPhotos.slice(),
+            foto: currentPhotos.length > 0 ? currentPhotos[0] : '',
             tallas,
             costoProveedor: parseFloat($('prod-costo-prov').value) || 0,
             costoEnvio: parseFloat($('prod-costo-envio').value) || 0,
@@ -297,8 +309,10 @@ function resetProductForm() {
     $('form-product-title').textContent = 'Agregar Tenis (Carga Rápida)';
     $('btn-save-prod').textContent = 'Guardar Producto';
     $('btn-cancel-edit').classList.add('hidden');
-    $('preview-wrapper').classList.add('hidden');
-    $('prod-foto-preview').src = '';
+    
+    currentPhotos = [];
+    renderPhotosGrid();
+    
     document.querySelectorAll('.size-stock-item').forEach(item => {
         item.classList.remove('active');
         const input = item.querySelector('.size-input');
@@ -332,10 +346,12 @@ function renderAdminProducts() {
         const isSoldOut = stock === 0;
         const tallasHtml = Object.entries(prod.tallas || {}).filter(([, q]) => q > 0)
             .map(([t, q]) => `<span class="size-badge">${t} (${q})</span>`).join(' ');
+            
+        let mainPhoto = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
 
         return `<div class="list-item" style="flex-wrap:wrap; gap:0.8rem;">
             <div style="display:flex; gap:0.8rem; align-items:center; flex:1; min-width:180px;">
-                ${prod.foto ? `<img src="${prod.foto}" style="width:50px;height:50px;object-fit:cover;border-radius:var(--radius-sm);" onerror="this.alt='👟';">` : `<div style="width:50px;height:50px;background:#222;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">👟</div>`}
+                ${mainPhoto ? `<img src="${mainPhoto}" style="width:50px;height:50px;object-fit:cover;border-radius:var(--radius-sm);" onerror="this.alt='👟';">` : `<div style="width:50px;height:50px;background:#222;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">👟</div>`}
                 <div class="list-item-info">
                     <strong>${prod.nombre} ${isSoldOut ? '<span style="color:#ff3333;font-size:0.8em;">[AGOTADO]</span>' : ''}</strong>
                     <span>${prod.marca} · ${provName} · PVP: ${formatCOP(prod.precioVenta)}</span>
@@ -363,11 +379,13 @@ window.editProduct = id => {
     $('prod-marca').value = prod.marca || 'Nike';
     $('prod-genero').value = prod.genero || 'Unisex';
     $('prod-color').value = prod.color || '';
-    $('prod-foto').value = prod.foto || '';
     $('prod-costo-prov').value = prod.costoProveedor || 0;
     $('prod-costo-envio').value = prod.costoEnvio || 0;
     $('prod-precio-venta').value = prod.precioVenta || 0;
-    if (prod.foto) { $('prod-foto-preview').src = prod.foto; $('preview-wrapper').classList.remove('hidden'); }
+    
+    currentPhotos = prod.fotos || (prod.foto ? [prod.foto] : []);
+    renderPhotosGrid();
+    
     document.querySelectorAll('.size-stock-item').forEach(item => {
         const size = item.dataset.size, input = item.querySelector('.size-input');
         if (prod.tallas?.[size] > 0) { item.classList.add('active'); input.disabled = false; input.value = prod.tallas[size]; }
