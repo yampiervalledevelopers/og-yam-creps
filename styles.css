@@ -82,6 +82,31 @@ input, select, textarea { font-family: inherit; }
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 0 8px var(--neon-green-glow));
+    transition: transform 0.3s ease;
+}
+.brand-logo-img:hover {
+    transform: scale(1.05);
+}
+
+.nav-menu {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-menu a {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color 0.3s, text-shadow 0.3s;
+}
+
+.nav-menu a:hover {
+    color: var(--neon-green);
+    text-shadow: 0 0 8px var(--neon-green-glow);
 }
 
 .nav-links {
@@ -763,9 +788,15 @@ input, select, textarea { font-family: inherit; }
 }
 
 @media (max-width: 768px) {
-    .navbar { padding: 0.8rem 1rem; }
+    .navbar { padding: 0.5rem 1rem; }
+    .brand-logo-img { height: 35px; }
     .brand h1 { font-size: 1.4rem; }
     .logo-icon { font-size: 1.3rem; }
+    
+    .nav-menu { gap: 0.5rem; }
+    .nav-menu a { font-size: 0.8rem; letter-spacing: 0; }
+    .brand.right-logo { display: none; }
+    
     .nav-links { gap: 0.3rem; }
     .nav-btn { padding: 0.4rem 0.6rem; font-size: 0.8rem; }
     
