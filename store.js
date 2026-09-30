@@ -31,20 +31,39 @@ function initFirestore() {
     }, err => console.error("Error cargando productos:", err));
 }
 
-// === RENDERIZAR CATÁLOGO ===
+window.nextCardImg = function(id, dir) {
+    const prod = products.find(p => p.id === id);
+    if (!prod) return;
+    let fotos = prod.fotos || (prod.foto ? [prod.foto] : []);
+    if (fotos.length <= 1) return;
+    
+    let imgEl = document.getElementById('card-img-' + id);
+    if (!imgEl) return;
+    
+    let currentSrc = imgEl.getAttribute('src');
+    // For relative URLs or mismatches, we can also keep track of current index, 
+    // but a direct indexOf match is usually fine for absolute URLs.
+    let idx = fotos.indexOf(currentSrc);
+    if (idx === -1) idx = 0;
+    
+    let newIdx = idx + dir;
+    if (newIdx < 0) newIdx = fotos.length - 1;
+    if (newIdx >= fotos.length) newIdx = 0;
+    
+    imgEl.src = fotos[newIdx];
+};
+
 function renderStore() {
     const grid = $('product-grid');
     if (!grid) return;
 
-    // Solo los que tienen stock
     let available = products.filter(p => getTotalStock(p) > 0);
 
-    // Filtrar por género si estamos en una subpágina
     if (window.FILTER_GENDER) {
         available = available.filter(p => {
             if (window.FILTER_GENDER === 'Hombre') return p.genero === 'Hombre' || p.genero === 'Unisex';
             if (window.FILTER_GENDER === 'Mujer') return p.genero === 'Mujer' || p.genero === 'Unisex';
-            return p.genero === window.FILTER_GENDER; // Niños, Niñas
+            return p.genero === window.FILTER_GENDER;
         });
     }
 
@@ -54,10 +73,7 @@ function renderStore() {
         return;
     }
 
-    // Filtrar promos
     let promos = available.filter(p => p.enPromocion);
-
-    // Fallback: Si el admin no ha generado promos, mostramos 16 al azar basados en la semana actual (pseudo-random para que sean los mismos toda la semana)
     if (promos.length === 0) {
         const week = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
         let shuffled = [...available].sort((a, b) => {
@@ -65,7 +81,7 @@ function renderStore() {
             const hashB = (b.id.charCodeAt(0) + week) % 100;
             return hashA - hashB;
         });
-        promos = shuffled.slice(0, 16).map(p => ({...p, fakePromo: true, descuento: 10})); // Fake 10%
+        promos = shuffled.slice(0, 16).map(p => ({...p, fakePromo: true, descuento: 10})); 
     } else {
         promos = promos.sort((a, b) => (b.fechaCreacion || 0) - (a.fechaCreacion || 0)).slice(0, 16);
     }
@@ -79,14 +95,19 @@ function renderStore() {
         let precioFinal = pVenta - (pVenta * desc / 100);
         let hotClass = desc >= 15 ? 'hot' : '';
         
-        let mainPhoto = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
+        let fotosArray = prod.fotos || (prod.foto ? [prod.foto] : []);
+        let mainPhoto = fotosArray.length > 0 ? fotosArray[0] : '';
         
         return `
         <div class="product-card" onclick="openProductModal('${prod.id}')">
-            <div class="card-img-wrapper">
+            <div class="card-img-wrapper" style="position:relative;">
                 ${desc > 0 ? `<div class="promo-badge ${hotClass}">-${desc}% OFF ${desc>=15?'🔥':''}</div>` : ''}
+                ${fotosArray.length > 1 ? `
+                    <button class="card-nav-btn left-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', -1)">&#10094;</button>
+                    <button class="card-nav-btn right-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', 1)">&#10095;</button>
+                ` : ''}
                 ${mainPhoto
-                    ? `<img src="${mainPhoto}" class="card-img" onerror="this.src='';">`
+                    ? `<img src="${mainPhoto}" id="card-img-${prod.id}" class="card-img" onerror="this.src='';">`
                     : `<div class="card-no-img">👟</div>`}
             </div>
             <div class="card-content">
@@ -111,9 +132,33 @@ function initModals() {
     });
 }
 
-window.changeModalImg = function(url) {
+window.currentModalPhotos = [];
+window.currentPhotoIndex = 0;
+
+window.changeModalImg = function(idx) {
+    if (!currentModalPhotos || currentModalPhotos.length === 0) return;
+    currentPhotoIndex = idx;
     const img = $('modal-img');
-    if (img) img.src = url;
+    if (img) img.src = currentModalPhotos[idx];
+
+    // Resaltar la miniatura activa
+    document.querySelectorAll('.modal-thumb-item').forEach((t, i) => {
+        if (i === idx) {
+            t.style.borderColor = 'var(--neon-green)';
+            t.style.opacity = '1';
+        } else {
+            t.style.borderColor = 'transparent';
+            t.style.opacity = '0.6';
+        }
+    });
+};
+
+window.nextModalImg = function(dir) {
+    if (!currentModalPhotos || currentModalPhotos.length <= 1) return;
+    let newIdx = currentPhotoIndex + dir;
+    if (newIdx < 0) newIdx = currentModalPhotos.length - 1;
+    if (newIdx >= currentModalPhotos.length) newIdx = 0;
+    changeModalImg(newIdx);
 };
 
 window.openProductModal = id => {
@@ -122,22 +167,41 @@ window.openProductModal = id => {
     const modal = $('product-modal');
 
     const img = $('modal-img');
-    let photos = prod.fotos || (prod.foto ? [prod.foto] : []);
+    currentModalPhotos = prod.fotos || (prod.foto ? [prod.foto] : []);
+    currentPhotoIndex = 0;
+    
+    let container = img.parentElement;
+    container.style.position = 'relative';
+    
+    // Limpiar nav previa
+    container.querySelectorAll('.modal-nav-btn, .modal-thumbs-container').forEach(el => el.remove());
+
+    // Agregar flechas si hay >1 foto
+    if (currentModalPhotos.length > 1) {
+        let leftBtn = document.createElement('button');
+        leftBtn.className = 'modal-nav-btn left-btn';
+        leftBtn.innerHTML = '&#10094;';
+        leftBtn.onclick = () => nextModalImg(-1);
+
+        let rightBtn = document.createElement('button');
+        rightBtn.className = 'modal-nav-btn right-btn';
+        rightBtn.innerHTML = '&#10095;';
+        rightBtn.onclick = () => nextModalImg(1);
+
+        container.appendChild(leftBtn);
+        container.appendChild(rightBtn);
+    }
     
     // Inject thumbnails if multiple
     let thumbHtml = '';
-    if (photos.length > 1) {
+    if (currentModalPhotos.length > 1) {
         thumbHtml = `<div style="display:flex; gap:0.5rem; justify-content:center; padding: 0.5rem; overflow-x:auto;">` + 
-            photos.map(url => `<img src="${url}" onclick="changeModalImg('${url}')" style="width:50px; height:50px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid #333;">`).join('') +
+            currentModalPhotos.map((url, idx) => `<img src="${url}" class="modal-thumb-item" onclick="changeModalImg(${idx})" style="width:50px; height:50px; object-fit:cover; border-radius:4px; cursor:pointer; border:2px solid transparent; opacity:0.6; transition:0.3s;">`).join('') +
             `</div>`;
     }
     
-    let container = img.parentElement;
-    let existingThumbs = container.querySelector('.modal-thumbs-container');
-    if (existingThumbs) existingThumbs.remove();
-    
-    if (photos.length > 0) {
-        img.src = photos[0];
+    if (currentModalPhotos.length > 0) {
+        img.src = currentModalPhotos[0];
         img.style.display = 'block';
         if (thumbHtml) {
             let div = document.createElement('div');
@@ -145,6 +209,7 @@ window.openProductModal = id => {
             div.innerHTML = thumbHtml;
             container.appendChild(div);
         }
+        changeModalImg(0); // init highlight
     } else {
         img.style.display = 'none';
     }

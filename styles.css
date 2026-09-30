@@ -431,6 +431,7 @@ input, select, textarea { font-family: inherit; }
 .modal-image-container {
     flex: 1;
     background: #000;
+    position: relative;
 }
 
 .modal-image-container img {
@@ -438,6 +439,65 @@ input, select, textarea { font-family: inherit; }
     height: 100%;
     object-fit: cover;
 }
+
+.modal-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.modal-nav-btn:hover {
+    background: var(--neon-green);
+    color: #000;
+    border-color: var(--neon-green);
+    box-shadow: 0 0 10px var(--neon-green-glow);
+}
+
+.modal-nav-btn.left-btn { left: 10px; }
+.modal-nav-btn.right-btn { right: 10px; }
+
+/* CARD ARROWS */
+.card-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s, color 0.3s;
+    z-index: 5;
+    opacity: 0;
+}
+.product-card:hover .card-nav-btn {
+    opacity: 1;
+}
+.card-nav-btn:hover {
+    background: var(--neon-green);
+    color: #000;
+}
+.card-nav-btn.left-btn { left: 5px; }
+.card-nav-btn.right-btn { right: 5px; }
 
 .modal-info {
     flex: 1;
@@ -813,6 +873,7 @@ input, select, textarea { font-family: inherit; }
         gap: 0.8rem;
     }
     .card-img-wrapper, .card-img { height: 160px !important; }
+    .card-nav-btn { opacity: 1; background: rgba(0, 0, 0, 0.6); }
     .card-content { padding: 0.8rem; }
     .card-title { font-size: 0.95rem; margin-bottom: 0.3rem; line-height: 1.2; }
     .brand-tag { font-size: 1rem; }
