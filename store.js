@@ -36,22 +36,42 @@ function renderStore() {
     const grid = $('product-grid');
     if (!grid) return;
 
-    // Mostrar solo los que tienen stock y ordenarlos (ej: los más nuevos primero)
-    const filtered = products
-        .filter(p => getTotalStock(p) > 0)
-        .sort((a, b) => (b.fechaCreacion || 0) - (a.fechaCreacion || 0));
-
-    if (filtered.length === 0) {
+    // Solo los que tienen stock
+    let available = products.filter(p => getTotalStock(p) > 0);
+    if (available.length === 0) {
         grid.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:3rem; grid-column:1/-1; font-size:1.1rem;">Pronto subiremos más tenis en promoción. ¡Escríbenos por WhatsApp y te conseguimos los que buscas! 👟</p>';
         return;
     }
 
-    grid.innerHTML = filtered.map(prod => {
+    // Filtrar promos
+    let promos = available.filter(p => p.enPromocion);
+
+    // Fallback: Si el admin no ha generado promos, mostramos 16 al azar basados en la semana actual (pseudo-random para que sean los mismos toda la semana)
+    if (promos.length === 0) {
+        const week = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7));
+        let shuffled = [...available].sort((a, b) => {
+            const hashA = (a.id.charCodeAt(0) + week) % 100;
+            const hashB = (b.id.charCodeAt(0) + week) % 100;
+            return hashA - hashB;
+        });
+        promos = shuffled.slice(0, 16).map(p => ({...p, fakePromo: true, descuento: 10})); // Fake 10%
+    } else {
+        promos = promos.sort((a, b) => (b.fechaCreacion || 0) - (a.fechaCreacion || 0)).slice(0, 16);
+    }
+
+    grid.innerHTML = promos.map(prod => {
         const sizes = Object.keys(prod.tallas || {}).filter(t => prod.tallas[t] > 0);
         const sizesHtml = sizes.map(t => `<span class="size-badge">${t}</span>`).join('');
+        
+        let desc = prod.descuento || 0;
+        let pVenta = prod.precioVenta || 0;
+        let precioFinal = pVenta - (pVenta * desc / 100);
+        let hotClass = desc >= 15 ? 'hot' : '';
+        
         return `
         <div class="product-card" onclick="openProductModal('${prod.id}')">
             <div class="card-img-wrapper">
+                ${desc > 0 ? `<div class="promo-badge ${hotClass}">-${desc}% OFF ${desc>=15?'🔥':''}</div>` : ''}
                 ${prod.foto
                     ? `<img src="${prod.foto}" class="card-img" onerror="this.src='';">`
                     : `<div class="card-no-img">👟</div>`}
@@ -59,9 +79,12 @@ function renderStore() {
             <div class="card-content">
                 <span class="brand-tag">${prod.marca}</span>
                 <p class="card-title">${prod.nombre}</p>
-                <p class="price">${formatCOP(prod.precioVenta)}</p>
+                <p class="price">
+                    ${desc > 0 ? `<span class="old-price">${formatCOP(pVenta)}</span>` : ''}
+                    ${formatCOP(precioFinal)}
+                </p>
                 <div class="sizes-badge-container">${sizesHtml}</div>
-                <button class="btn-wa" onclick="event.stopPropagation(); quickWhatsApp('${prod.id}')">Pedir 💬</button>
+                <button class="btn-wa" onclick="event.stopPropagation(); quickWhatsApp('${prod.id}', ${precioFinal})">Pedir 💬</button>
             </div>
         </div>`;
     }).join('');
@@ -84,9 +107,20 @@ window.openProductModal = id => {
     if (prod.foto) { img.src = prod.foto; img.style.display = 'block'; }
     else img.style.display = 'none';
 
+    let desc = prod.descuento || (prod.fakePromo ? 10 : 0);
+    // If it's a fake promo (fallback), we need to ensure the modal shows the same fake discount
+    // We didn't persist the fake promo globally, let's just re-check if we are in fake mode.
+    // Actually simpler: just calculate based on prod.descuento. The fake promo was only on the map.
+    // Let's rely on the DOM for the price if we want, or just calculate it again.
+    const isFake = !products.some(p => p.enPromocion);
+    if (isFake) desc = 10;
+    
+    let pVenta = prod.precioVenta || 0;
+    let precioFinal = pVenta - (pVenta * desc / 100);
+
     $('modal-brand').textContent = prod.marca;
     $('modal-title').textContent = prod.nombre;
-    $('modal-price').textContent = formatCOP(prod.precioVenta);
+    $('modal-price').innerHTML = desc > 0 ? `<span class="old-price">${formatCOP(pVenta)}</span> ${formatCOP(precioFinal)}` : formatCOP(pVenta);
     $('modal-desc').textContent = [prod.color ? 'Color: ' + prod.color : '', prod.genero, 'Medellín, Colombia · Envíos a todo el país'].filter(Boolean).join(' · ');
 
     const sizesContainer = $('modal-size-selector');
@@ -110,18 +144,18 @@ window.openProductModal = id => {
     newBtn.addEventListener('click', () => {
         const selectedBtn = sizesContainer?.querySelector('.size-btn.selected');
         const size = selectedBtn ? selectedBtn.dataset.size : 'N/A';
-        const msg = `¡Hola! Me interesan los tenis: *${prod.nombre}* (${prod.marca})\n👟 Talla: *${size}*\n💵 Precio: *${formatCOP(prod.precioVenta)}*\n¿Están disponibles para envío?`;
+        const msg = `¡Hola! Me interesan los tenis en promoción: *${prod.nombre}* (${prod.marca})\n👟 Talla: *${size}*\n💵 Precio Promo: *${formatCOP(precioFinal)}*\n¿Están disponibles para envío?`;
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
     });
 
     modal.classList.remove('hidden');
 };
 
-window.quickWhatsApp = id => {
+window.quickWhatsApp = (id, precioPromo) => {
     const prod = products.find(p => p.id === id);
     if (!prod) return;
     const sizes = Object.keys(prod.tallas || {}).filter(t => prod.tallas[t] > 0).join(', ');
-    const msg = `¡Hola! Me interesan los tenis: *${prod.nombre}* (${prod.marca})\nTallas que vi: ${sizes}\nPrecio: *${formatCOP(prod.precioVenta)}*\n¿Me podrías confirmar disponibilidad?`;
+    const msg = `¡Hola! Me interesan los tenis en promoción: *${prod.nombre}* (${prod.marca})\nTallas que vi: ${sizes}\nPrecio Promo: *${formatCOP(precioPromo)}*\n¿Me podrías confirmar disponibilidad?`;
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
 };
 

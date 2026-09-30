@@ -94,6 +94,7 @@ function listenData() {
         products = [];
         snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
         renderAdminProducts();
+        renderAdminPromos();
         renderDashboard();
     });
 
@@ -103,6 +104,7 @@ function listenData() {
         renderProviders();
         populateProviderDropdown();
         renderAdminProducts();
+        renderAdminPromos();
         renderDashboard();
     });
 
@@ -553,6 +555,74 @@ function renderSales() {
     });
     list.innerHTML = html + '</tbody></table>';
 }
+
+// ==========================================
+// PROMOCIONES
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    $('btn-generate-promos')?.addEventListener('click', generateRandomPromos);
+});
+
+async function generateRandomPromos() {
+    if (!confirm('¿Seguro? Esto reemplazará las promociones actuales con 16 tenis al azar.')) return;
+    const btn = $('btn-generate-promos');
+    btn.disabled = true; btn.textContent = 'Generando...';
+    
+    try {
+        const batch = db.batch();
+        // Quitar promos actuales
+        products.filter(p => p.enPromocion).forEach(p => {
+            batch.update(db.collection('productos').doc(p.id), { enPromocion: false, descuento: 0 });
+        });
+        
+        // Seleccionar 16 con stock al azar
+        let available = products.filter(p => getTotalStock(p) > 0);
+        let shuffled = available.sort(() => 0.5 - Math.random());
+        let selected = shuffled.slice(0, 16);
+        
+        selected.forEach(p => {
+            const r = Math.random();
+            let desc = 10;
+            if (r > 0.9) desc = 20;
+            else if (r > 0.7) desc = 15;
+            
+            batch.update(db.collection('productos').doc(p.id), { enPromocion: true, descuento: desc });
+        });
+        
+        await batch.commit();
+        alert('¡Nuevas promociones generadas! 🔥');
+    } catch(e) { alert('Error: ' + e.message); }
+    
+    btn.disabled = false; btn.textContent = '🎲 Generar 16 Promos al Azar Ahora';
+}
+
+function renderAdminPromos() {
+    const list = $('promos-list');
+    if (!list) return;
+    
+    const promos = products.filter(p => p.enPromocion);
+    if (promos.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No hay promociones fijadas. La tienda mostrará 16 al azar automáticamente.</p>';
+        return;
+    }
+    
+    list.innerHTML = promos.map(p => `
+        <div class="list-item">
+            <div class="list-item-info">
+                <strong>${p.nombre} (${p.marca})</strong>
+                <span>PVP: ${formatCOP(p.precioVenta)} | <span style="color:var(--neon-green)">-${p.descuento}% OFF</span> = ${formatCOP(p.precioVenta - (p.precioVenta * p.descuento / 100))}</span>
+            </div>
+            <div class="list-actions">
+                <button class="btn-action delete" onclick="removePromo('${p.id}')">Quitar Promo</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.removePromo = async id => {
+    try { await db.collection('productos').doc(id).update({ enPromocion: false, descuento: 0 }); }
+    catch(e) { alert('Error: ' + e.message); }
+};
 
 // ==========================================
 // HELPERS

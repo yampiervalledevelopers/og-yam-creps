@@ -240,6 +240,34 @@ input, select, textarea { font-family: inherit; }
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+}
+
+.promo-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ff0044;
+    color: #fff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 800;
+    font-size: 0.8rem;
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(255,0,68,0.5);
+}
+.promo-badge.hot {
+    background: #ffaa00;
+    color: #000;
+    box-shadow: 0 2px 8px rgba(255,170,0,0.5);
+}
+
+.old-price {
+    text-decoration: line-through;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-right: 0.3rem;
+    font-weight: normal;
 }
 
 @media (min-width: 768px) {

@@ -62,10 +62,24 @@
             </div>
             <div class="admin-tabs">
                 <button id="tab-productos" class="admin-tab-btn active">👟 Productos</button>
+                <button id="tab-promos" class="admin-tab-btn">🔥 Promociones</button>
                 <button id="tab-proveedores" class="admin-tab-btn">📦 Proveedores</button>
                 <button id="tab-ventas" class="admin-tab-btn">💰 Ventas</button>
             </div>
         </div>
+
+        <!-- Sub-tab: Promociones -->
+        <section id="admin-promos" class="admin-section hidden">
+            <div class="admin-card">
+                <h3>Vitrina de Promociones (Máx 16)</h3>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+                    La tienda mostrará automáticamente los tenis que estén aquí. Puedes generarlos al azar (10%, 15% o 20% OFF) o dejarlos vacíos para que el sistema rote 16 al azar cada semana.
+                </p>
+                <button id="btn-generate-promos" class="btn-primary" style="margin-bottom:2rem;">🎲 Generar 16 Promos al Azar Ahora</button>
+                
+                <div id="promos-list" class="list-container"></div>
+            </div>
+        </section>
 
         <!-- Sub-tab: Proveedores -->
         <section id="admin-proveedores" class="admin-section hidden">
