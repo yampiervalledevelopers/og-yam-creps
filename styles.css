@@ -84,20 +84,6 @@ input, select, textarea { font-family: inherit; }
     filter: drop-shadow(0 0 8px var(--neon-green-glow));
 }
 
-.hero-logo {
-    max-width: 350px;
-    width: 80%;
-    height: auto;
-    filter: drop-shadow(0 0 20px var(--neon-green-glow));
-    animation: logoPulse 3s ease-in-out infinite;
-    margin-bottom: 1rem;
-}
-
-@keyframes logoPulse {
-    0%, 100% { filter: drop-shadow(0 0 20px var(--neon-green-glow)); }
-    50% { filter: drop-shadow(0 0 35px var(--neon-green-glow)) drop-shadow(0 0 60px rgba(57, 255, 20, 0.15)); }
-}
-
 .nav-links {
     display: flex;
     gap: 1rem;
@@ -115,6 +101,28 @@ input, select, textarea { font-family: inherit; }
     background: rgba(57, 255, 20, 0.1);
     color: var(--neon-green);
     border-color: var(--neon-green);
+}
+
+/* LOGO GRANDE PRINCIPAL */
+.hero-logo-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem 1rem 2rem 1rem;
+    background: radial-gradient(circle at center, #1a2a1a 0%, var(--bg-dark) 70%);
+}
+
+.hero-logo-large {
+    max-width: 450px;
+    width: 85%;
+    height: auto;
+    filter: drop-shadow(0 0 20px var(--neon-green-glow));
+    animation: logoPulse 3s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+    0%, 100% { filter: drop-shadow(0 0 20px var(--neon-green-glow)); }
+    50% { filter: drop-shadow(0 0 40px var(--neon-green-glow)) drop-shadow(0 0 70px rgba(57, 255, 20, 0.2)); }
 }
 
 /* BRANDS CAROUSEL (DOBLE PISO) */
