@@ -1,4 +1,4 @@
-﻿/**
+/**
  * O'G YAM CREPS — Panel de Administración (admin.js)
  * Firebase Auth + Firestore. Completamente separado de la tienda pública.
  */
@@ -749,7 +749,7 @@ function renderSales() {
             <td style="padding:0.7rem;font-size:0.85rem;color:var(--neon-green)">${origenBadge}</td>
             <td style="padding:0.7rem;font-size:0.85rem;">${v.proveedor}</td>
             <td style="padding:0.7rem;">${formatCOP(v.precioVenta)}</td>
-            <td style="padding:0.7rem;color:${v.ganancia >= 0 ? 'var(--neon-green)' : '#ff3333'};font-weight:bold;">${formatCOP(v.ganancia)}</td>            <td style="padding:0.7rem;text-align:center;"><button onclick="deleteVenta(`' + v.id + '`)" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Venta">❌</button></td>
+            <td style="padding:0.7rem;color:${v.ganancia >= 0 ? 'var(--neon-green)' : '#ff3333'};font-weight:bold;">${formatCOP(v.ganancia)}</td>            <td style="padding:0.7rem;text-align:center;"><button onclick="deleteVenta('${v.id}')" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Venta">❌</button></td>
         </tr>`;
     });
     list.innerHTML = html + '</tbody></table>';
@@ -907,7 +907,7 @@ window.renderCreditos = function() {
                 <p style="margin:0.2rem 0 0 0; font-size:0.85rem;">Estado: ${statusHtml}</p>
             </div>
             <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
-                <button class="btn-action sell" onclick="promptAbono('${c.id}')">💰 Registrar Abono</button>                <button class="btn-action" style="background:#ff3333; color:white; border:none;" onclick="deleteCredito(`' + c.id + '`)">🗑️ Anular Crédito</button>
+                <button class="btn-action sell" onclick="promptAbono('${c.id}')">💰 Registrar Abono</button>                <button class="btn-action" style="background:#ff3333; color:white; border:none;" onclick="deleteCredito('${c.id}')">🗑️ Anular Crédito</button>
                 <a href="https://wa.me/57${c.clienteTelefono}?text=${encodedMsg}" target="_blank" class="btn-action" style="background:#25D366; color:#000; text-decoration:none; text-align:center; padding:0.4rem 1rem;">💬 Enviar WhatsApp</a>
             </div>
         </div>`;
