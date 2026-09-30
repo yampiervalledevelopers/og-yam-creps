@@ -1,4 +1,4 @@
-﻿/**
+/**
  * O'G YAM CREPS — Panel de Administración (admin.js)
  * Firebase Auth + Firestore. Completamente separado de la tienda pública.
  */
@@ -698,12 +698,28 @@ function renderDashboard() {
         }
     });
 
-    const gananciaReal = ventas.reduce((s, v) => s + (v.ganancia || 0), 0);
+    let gananciaReal = 0;
+    let gananciaFlotante = 0;
+
+    ventas.forEach(v => {
+        if (v.metodo === 'credito') {
+            const cred = (typeof creditos !== 'undefined' ? creditos : []).find(c => c.fechaVenta === v.fecha);
+            if (cred && cred.estado === 'pagado') {
+                gananciaReal += (v.ganancia || 0);
+            } else {
+                gananciaFlotante += (v.ganancia || 0);
+            }
+        } else {
+            gananciaReal += (v.ganancia || 0);
+        }
+    });
+
     const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
     set('kpi-invertido', formatCOP(invertidoBodega));
     set('kpi-venta-potencial', formatCOP(ventaBodega));
     set('kpi-ganancia-potencial', formatCOP(ventaBodega - invertidoBodega));
     set('kpi-ganancia-realizada', formatCOP(gananciaReal));
+    set('kpi-ganancia-flotante', formatCOP(gananciaFlotante));
     set('kpi-stock-bodega', stockBodegaTotal);
     set('kpi-stock-prov', stockProvTotal);
     set('kpi-ventas-total', formatCOP(gananciaReal));
@@ -890,8 +906,11 @@ window.renderCreditos = function() {
             } else if (daysDiff <= 3) {
                 statusHtml = `<span style="color:#ffaa00;">Próximo a vencer (${daysDiff} días)</span>`;
                 statusMsg = `Hola ${c.clienteNombre}, te recordamos que tu próxima cuota de ${formatCOP(nextCuota.monto)} por tus ${c.nombreProducto} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}. ¡Gracias por tu puntualidad!`;
+            } else if (nextCuota.numero === 1) {
+                statusHtml = `<span style="color:#00e5ff;">Inicio de Crédito</span>`;
+                statusMsg = `Hola ${c.clienteNombre}, gracias por tu compra. Te recordamos que tu primera cuota de ${formatCOP(nextCuota.monto)} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}.`;
             } else {
-                statusHtml = `<span style="color:var(--neon-green);">Al día</span>`;
+                statusHtml = `<span style="color:var(--neon-green);">Cuotas al día</span>`;
                 statusMsg = `Hola ${c.clienteNombre}, un saludo. Solo para tenerlo en el radar, tu próxima cuota de ${formatCOP(nextCuota.monto)} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}.`;
             }
         }
