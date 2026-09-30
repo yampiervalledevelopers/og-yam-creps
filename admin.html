@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>O'G YAM CREPS — Panel de Administración</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+    <!-- NAVBAR ADMIN -->
+    <nav class="navbar">
+        <div class="brand">
+            <img src="logo.jpg" alt="O'G YAM CREPS" class="brand-logo-img">
+            <span style="background:var(--neon-green); color:#000; padding:0.2rem 0.6rem; border-radius:var(--radius-sm); font-size:0.7rem; font-weight:800; margin-left:0.5rem;">ADMIN</span>
+        </div>
+        <div class="nav-links" id="admin-nav-links" style="display:none;">
+            <a href="index.html" class="nav-btn" target="_blank" style="font-size:0.85rem;">🌐 Ver Tienda</a>
+            <button id="nav-logout-btn" class="nav-btn" style="color:#ff5555;">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <!-- PANTALLA DE LOGIN -->
+    <main id="login-screen" class="view" style="min-height:80vh; display:flex; align-items:center; justify-content:center;">
+        <div class="admin-card" style="max-width:400px; width:95%; margin:2rem auto;">
+            <div style="text-align:center; margin-bottom:2rem;">
+                <img src="logo.jpg" alt="O'G YAM CREPS" style="max-width:200px; margin-bottom:1rem;">
+                <h2 style="color:var(--neon-green); margin-top:0.5rem;">Panel de Administración</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.5rem;">Ingresa con tu cuenta de administrador</p>
+            </div>
+            <form id="form-login" class="admin-form">
+                <div class="form-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="login-email" required placeholder="tu-correo@ejemplo.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" autocomplete="current-password">
+                </div>
+                <p id="login-error" style="color:#ff4444; font-size:0.85rem; margin-bottom:1rem; display:none;"></p>
+                <button type="submit" id="login-submit-btn" class="btn-primary w-full">Ingresar</button>
+            </form>
+        </div>
+    </main>
+
+    <!-- PANEL DE CONTROL (SOLO VISIBLE TRAS LOGIN) -->
+    <main id="admin-panel" class="view" style="display:none;">
+        <div class="admin-header">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+                <div>
+                    <h2>Panel de Control</h2>
+                    <p id="sync-status" style="color:var(--text-muted); font-size:0.85rem;">Conectando...</p>
+                </div>
+            </div>
+            <div class="admin-tabs">
+                <button id="tab-productos" class="admin-tab-btn active">👟 Productos</button>
+                <button id="tab-proveedores" class="admin-tab-btn">📦 Proveedores</button>
+                <button id="tab-ventas" class="admin-tab-btn">💰 Ventas</button>
+            </div>
+        </div>
+
+        <!-- Sub-tab: Proveedores -->
+        <section id="admin-proveedores" class="admin-section hidden">
+            <div class="admin-layout">
+                <div class="admin-card form-card">
+                    <h3>Registrar Proveedor Local</h3>
+                    <form id="form-proveedor" class="admin-form">
+                        <div class="form-group">
+                            <label>Nombre del proveedor *</label>
+                            <input type="text" id="prov-nombre" required placeholder="Ej: Proveedor Hueco / Bodega 3">
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono / WhatsApp</label>
+                            <input type="tel" id="prov-telefono" placeholder="300 000 0000">
+                        </div>
+                        <div class="form-group">
+                            <label>Notas / Ubicación / Días de entrega</label>
+                            <textarea id="prov-notas" rows="3" placeholder="Ej: Entrega los martes, pago contraentrega..."></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary w-full">Guardar Proveedor</button>
+                    </form>
+                </div>
+                <div class="admin-card list-card">
+                    <h3>Tus Proveedores Guardados</h3>
+                    <div id="proveedores-list" class="list-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sub-tab: Productos -->
+        <section id="admin-productos" class="admin-section active">
+            <div class="kpi-dashboard">
+                <div class="kpi-card"><h4>Invertido en Stock</h4><p id="kpi-invertido">$0</p></div>
+                <div class="kpi-card"><h4>Venta Potencial</h4><p id="kpi-venta-potencial">$0</p></div>
+                <div class="kpi-card highlight"><h4>Ganancia Potencial</h4><p id="kpi-ganancia-potencial">$0</p></div>
+                <div class="kpi-card"><h4>Ganancia Realizada</h4><p id="kpi-ganancia-realizada">$0</p></div>
+                <div class="kpi-card"><h4>Pares en Stock</h4><p id="kpi-stock">0</p></div>
+                <div class="kpi-card breakdown"><h4>Desglose por Proveedor</h4><div id="kpi-proveedores-breakdown"></div></div>
+            </div>
+
+            <div class="admin-layout">
+                <div class="admin-card form-card">
+                    <h3 id="form-product-title">Agregar Tenis (Carga Rápida)</h3>
+                    <form id="form-producto" class="admin-form">
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label>Proveedor Local *</label>
+                                <select id="prod-proveedor" required><option value="">Selecciona...</option></select>
+                            </div>
+                            <div class="form-group flex-2">
+                                <label>Modelo / Nombre *</label>
+                                <input type="text" id="prod-nombre" required placeholder="Ej: Nike Dunk Low Panda">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label>Marca *</label>
+                                <select id="prod-marca">
+                                    <option value="Nike">Nike</option><option value="Jordan">Jordan</option>
+                                    <option value="Adidas">Adidas</option><option value="New Balance">New Balance</option>
+                                    <option value="Puma">Puma</option><option value="Reebok">Reebok</option>
+                                    <option value="Converse">Converse</option><option value="Vans">Vans</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label>Género</label>
+                                <select id="prod-genero">
+                                    <option value="Unisex">Unisex</option><option value="Hombre">Hombre</option><option value="Mujer">Mujer</option>
+                                </select>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label>Color / Detalles</label>
+                                <input type="text" id="prod-color" placeholder="Blanco / Negro">
+                            </div>
+                        </div>
+
+                        <div class="form-group photo-upload">
+                            <label>Foto del producto</label>
+                            <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:0.5rem;">
+                                <label for="prod-foto-file" class="btn-primary" style="text-align:center; cursor:pointer; padding:0.7rem 1rem; font-size:0.95rem; display:block; border-radius:var(--radius-sm);">
+                                    📸 Elegir foto de mi celular / galería
+                                </label>
+                                <input type="file" id="prod-foto-file" accept="image/*" style="display:none;">
+                                <div style="display:flex; align-items:center; gap:0.5rem;">
+                                    <span style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap;">o link:</span>
+                                    <input type="text" id="prod-foto" placeholder="https://..." style="font-size:0.85rem;">
+                                </div>
+                            </div>
+                            <div id="preview-wrapper" style="position:relative; display:inline-block; margin-top:0.3rem;" class="hidden">
+                                <img id="prod-foto-preview" class="thumbnail-preview" alt="Vista previa" style="max-height:140px; border-radius:var(--radius-sm); border:1px solid var(--neon-green);">
+                                <button type="button" id="btn-remove-foto" style="position:absolute; top:4px; right:4px; background:rgba(255,0,0,0.85); color:#fff; border-radius:50%; width:24px; height:24px; font-weight:bold; border:none; cursor:pointer;">&times;</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group size-grid-group">
+                            <label>Tallas disponibles (Toca para activar, ajusta stock)</label>
+                            <div id="size-stock-grid" class="size-stock-grid"></div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label>Costo Proveedor (COP) *</label>
+                                <input type="number" id="prod-costo-prov" required class="calc-input" placeholder="70000">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label>Costo Envío / Moto (COP)</label>
+                                <input type="number" id="prod-costo-envio" value="0" class="calc-input" placeholder="10000">
+                            </div>
+                        </div>
+                        <div class="form-group"><p class="calc-result">Costo Total: <span id="calc-costo-total">$0</span></p></div>
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label>Precio de Venta al Cliente (COP) *</label>
+                                <input type="number" id="prod-precio-venta" required class="calc-input" placeholder="130000">
+                            </div>
+                        </div>
+                        <div class="form-group"><p class="calc-result highlight">Ganancia: <span id="calc-ganancia">$0</span> | Margen: <span id="calc-margen">0%</span></p></div>
+
+                        <div style="display:flex; gap:0.5rem;">
+                            <button type="submit" id="btn-save-prod" class="btn-primary w-full">Guardar Producto</button>
+                            <button type="button" id="btn-cancel-edit" class="btn-action hidden" style="padding:0.8rem 1rem;">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-card list-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <h3>Inventario Activo</h3>
+                        <span id="admin-prod-count" style="color:var(--text-muted); font-size:0.9rem;">0 pares</span>
+                    </div>
+                    <div id="productos-list" class="list-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sub-tab: Ventas -->
+        <section id="admin-ventas" class="admin-section hidden">
+            <div class="kpi-dashboard single-kpi">
+                <div class="kpi-card highlight"><h4>Ganancia Total Realizada</h4><p id="kpi-ventas-total">$0</p></div>
+            </div>
+            <div class="admin-card list-card">
+                <h3>Historial de Ventas</h3>
+                <div id="ventas-list" class="list-container" style="overflow-x:auto;"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- SELL PRODUCT MODAL -->
+    <div id="sell-modal" class="modal hidden">
+        <div class="modal-content small-modal">
+            <button id="sell-modal-close" class="modal-close">&times;</button>
+            <h3>Marcar como Vendido</h3>
+            <p id="sell-product-name" style="margin-bottom:1rem; font-weight:600;"></p>
+            <div class="form-group">
+                <label>¿Qué talla se vendió?</label>
+                <select id="sell-size-select" style="margin-top:0.5rem;"></select>
+            </div>
+            <button id="confirm-sell-btn" class="btn-primary w-full" style="margin-top:1rem;">Confirmar Venta</button>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
