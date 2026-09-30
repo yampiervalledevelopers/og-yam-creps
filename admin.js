@@ -1,4 +1,4 @@
-/**
+﻿/**
  * O'G YAM CREPS — Panel de Administración (admin.js)
  * Firebase Auth + Firestore. Completamente separado de la tienda pública.
  */
@@ -21,6 +21,7 @@ let products = [];
 let providers = [];
 let ventas = [];
 let creditos = [];
+let transacciones = [];
 let editingProductId = null;
 let currentSoldProduct = null;
 
@@ -117,6 +118,11 @@ function listenData() {
         if (typeof updateClientDatalist === 'function') updateClientDatalist();
         renderDashboard();
     }, err => { console.error('Error cargando creditos:', err); });
+    db.collection('transacciones').orderBy('fecha', 'desc').onSnapshot(snap => {
+        transacciones = [];
+        snap.forEach(doc => transacciones.push({ id: doc.id, ...doc.data() }));
+        if (typeof renderCaja === 'function') renderCaja();
+    });
     db.collection('ventas').orderBy('fecha', 'desc').onSnapshot(snap => {
         ventas = [];
         snap.forEach(doc => ventas.push({ id: doc.id, ...doc.data() }));
@@ -587,6 +593,7 @@ async function confirmSale() {
                 productoId: prod.id,
                 nombreProducto: prod.nombre,
                 precioTotal: prod.precioVenta,
+                costoTotal: costoCalc,
                 abonoInicial,
                 saldoPendiente: saldoRestante,
                 cuotas: cuotasArray,
@@ -595,6 +602,22 @@ async function confirmSale() {
             });
         }
         
+        // Generar transacciones automáticas
+        if (metodo === 'contado') {
+            batch.set(db.collection('transacciones').doc(), {
+                tipo: 'ingreso', concepto: 'Venta Contado: ' + prod.nombre, monto: Number(precioVendido), fecha: now, refId: ventaRef.id
+            });
+        } else if (metodo === 'credito' && abonoInicial > 0) {
+            batch.set(db.collection('transacciones').doc(), {
+                tipo: 'ingreso', concepto: 'Abono Inicial Crédito: ' + prod.nombre, monto: Number(abonoInicial), fecha: now, refId: ventaRef.id
+            });
+        }
+        
+        if (origen === 'proveedor') {
+            batch.set(db.collection('transacciones').doc(), {
+                tipo: 'egreso', concepto: 'Costo Proveedor (Sobre pedido): ' + prod.nombre, monto: Number(costoCalc), fecha: now, refId: ventaRef.id
+            });
+        }
         await batch.commit();
         
         $('sell-modal').classList.add('hidden');
@@ -916,6 +939,18 @@ window.renderCreditos = function() {
         }
 
         const encodedMsg = encodeURIComponent(statusMsg);
+        
+        const costo = c.costoTotal || 0;
+        let roiHtml = '';
+        if (costo > 0) {
+            if (totalPagado < costo) {
+                roiHtml = <span style="background:#ff333333;color:#ff3333;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Aún no recuperas la inversión">🔴 Déficit (Falta  para empatar)</span>;
+            } else if (totalPagado === costo) {
+                roiHtml = <span style="background:#ffaa0033;color:#ffaa00;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Inversión recuperada">🟡 Equilibrio Alcanzado</span>;
+            } else {
+                roiHtml = <span style="background:#00ff8833;color:var(--neon-green);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Todo lo nuevo es ganancia">🟢 Ganancia (+)</span>;
+            }
+        }
 
         return `<div class="list-item" style="flex-wrap:wrap; gap:0.8rem; align-items:flex-start;">
             <div style="flex:1; min-width:200px;">
@@ -924,6 +959,7 @@ window.renderCreditos = function() {
                 <p style="margin:0; font-size:0.9rem;"><strong>Tenis:</strong> ${c.nombreProducto}</p>
                 <p style="margin:0; font-size:0.9rem;"><strong>Deuda Restante:</strong> ${formatCOP(c.saldoPendiente)} de ${formatCOP(c.precioTotal)}</p>
                 <p style="margin:0.2rem 0 0 0; font-size:0.85rem;">Estado: ${statusHtml}</p>
+                <div style="margin-top:0.5rem;">${roiHtml}</div>
             </div>
             <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
                 <button class="btn-action sell" onclick="promptAbono('${c.id}')">💰 Registrar Abono</button>                <button class="btn-action" style="background:#ff3333; color:white; border:none;" onclick="deleteCredito('${c.id}')">🗑️ Anular Crédito</button>
@@ -978,11 +1014,20 @@ window.confirmAbono = async function(cuotaIndex) {
     }
     
     try {
-        await db.collection('creditos').doc(cred.id).update({
+        const batch = db.batch();
+        batch.update(db.collection('creditos').doc(cred.id), {
             cuotas: cred.cuotas,
             saldoPendiente: cred.saldoPendiente,
             estado: cred.estado
         });
+        batch.set(db.collection('transacciones').doc(), {
+            tipo: 'ingreso',
+            concepto: 'Pago Cuota Crédito: ' + cred.nombreProducto + ' (' + cred.clienteNombre + ')',
+            monto: cuota.monto,
+            fecha: Date.now(),
+            refId: cred.id
+        });
+        await batch.commit();
         alert('Pago registrado correctamente. ✅');
         $('abono-modal').classList.add('hidden');
     } catch(e) {
@@ -1048,3 +1093,86 @@ window.deleteCredito = async id => {
         catch (e) { alert('Error: ' + e.message); }
     }
 };
+
+// ==========================================
+// CAJA (FINANZAS)
+// ==========================================
+window.renderCaja = function() {
+    const list = caja-list;
+    const saldoEl = kpi-caja-saldo;
+    const ingresosEl = kpi-caja-ingresos;
+    const egresosEl = kpi-caja-egresos;
+    
+    if (!list) return;
+
+    let saldo = 0, ingresos = 0, egresos = 0;
+    
+    // transacciones is already sorted descending by 'fecha' from Firestore listener
+    let html = '';
+    
+    transacciones.forEach(t => {
+        const monto = t.monto || 0;
+        if (t.tipo === 'ingreso') {
+            ingresos += monto;
+            saldo += monto;
+        } else {
+            egresos += monto;
+            saldo -= monto;
+        }
+        
+        const color = t.tipo === 'ingreso' ? 'var(--neon-green)' : '#ff3333';
+        const signo = t.tipo === 'ingreso' ? '+' : '-';
+        
+        html += <tr style="border-bottom:1px solid #222;">
+            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted);"></td>
+            <td style="padding:0.7rem;font-weight:600;"></td>
+            <td style="padding:0.7rem;color:;"><span class="badge" style="background:22;color:"></span></td>
+            <td style="padding:0.7rem;color:;font-weight:bold;"></td>
+            <td style="padding:0.7rem;text-align:center;">
+                <button onclick="deleteTransaccion('')" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Movimiento">❌</button>
+            </td>
+        </tr>;
+    });
+
+    if (transacciones.length === 0) {
+        list.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">No hay movimientos registrados.</td></tr>';
+    } else {
+        list.innerHTML = html;
+    }
+
+    if (saldoEl) saldoEl.textContent = formatCOP(saldo);
+    if (ingresosEl) ingresosEl.textContent = formatCOP(ingresos);
+    if (egresosEl) egresosEl.textContent = formatCOP(egresos);
+};
+
+window.deleteTransaccion = async function(id) {
+    if (confirm('¿Estás seguro de eliminar este movimiento manual de caja?')) {
+        try { await db.collection('transacciones').doc(id).delete(); }
+        catch (e) { alert('Error: ' + e.message); }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    transaccion-modal-close?.addEventListener('click', () => transaccion-modal.classList.add('hidden'));
+    
+    form-transaccion?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const tipo = trans-tipo.value;
+        const concepto = trans-concepto.value.trim();
+        const monto = parseInt(trans-monto.value);
+        
+        try {
+            await db.collection('transacciones').add({
+                tipo,
+                concepto,
+                monto,
+                fecha: Date.now(),
+                manual: true
+            });
+            transaccion-modal.classList.add('hidden');
+            form-transaccion.reset();
+        } catch (err) {
+            alert('Error guardando transacción: ' + err.message);
+        }
+    });
+});

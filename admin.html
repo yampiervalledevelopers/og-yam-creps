@@ -265,6 +265,43 @@
                 <div id="creditos-list" class="list-container"></div>
             </div>
         </section>
+        <!-- Sub-tab: Caja (Finanzas) -->
+        <section id="admin-caja" class="admin-section hidden">
+            <div class="kpi-grid">
+                <div class="kpi-card" style="border-left:4px solid #00e5ff;">
+                    <h4 style="color:var(--text-muted);">Saldo Actual en Caja</h4>
+                    <p id="kpi-caja-saldo" class="kpi-value" style="color:#00e5ff;"></p>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--neon-green);">
+                    <h4 style="color:var(--text-muted);">Total Ingresos</h4>
+                    <p id="kpi-caja-ingresos" class="kpi-value" style="color:var(--neon-green);"></p>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid #ff3333;">
+                    <h4 style="color:var(--text-muted);">Total Egresos</h4>
+                    <p id="kpi-caja-egresos" class="kpi-value" style="color:#ff3333;"></p>
+                </div>
+            </div>
+            <div class="admin-card" style="margin-top:2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
+                    <h3>Historial de Movimientos</h3>
+                    <button class="btn-primary" onclick="transaccion-modal.classList.remove('hidden')">➕ Nuevo Movimiento Manual</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Concepto</th>
+                                <th>Tipo</th>
+                                <th>Monto</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="caja-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- SELL PRODUCT MODAL -->
@@ -346,5 +383,30 @@
     <datalist id="dl-clientes-nombres"></datalist>
     <datalist id="dl-clientes-telefonos"></datalist>
     <script src="admin.js"></script>
+    <!-- Modal: Nueva Transacción Manual -->
+    <div id="transaccion-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width:400px;">
+            <button class="modal-close" id="transaccion-modal-close">&times;</button>
+            <h2 style="margin-top:0; color:var(--neon-green);">Registrar Movimiento</h2>
+            <form id="form-transaccion">
+                <div class="form-group">
+                    <label>Tipo de Movimiento</label>
+                    <select id="trans-tipo" required>
+                        <option value="ingreso">Ingreso de Dinero (+)</option>
+                        <option value="egreso">Salida / Gasto (-)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Concepto / Descripción</label>
+                    <input type="text" id="trans-concepto" required placeholder="Ej: Pago a proveedor, Inversión inicial...">
+                </div>
+                <div class="form-group">
+                    <label>Monto (COP)</label>
+                    <input type="number" id="trans-monto" required min="1">
+                </div>
+                <button type="submit" class="btn-primary w-full">Guardar Movimiento</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
