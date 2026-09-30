@@ -38,8 +38,19 @@ function renderStore() {
 
     // Solo los que tienen stock
     let available = products.filter(p => getTotalStock(p) > 0);
+
+    // Filtrar por género si estamos en una subpágina
+    if (window.FILTER_GENDER) {
+        available = available.filter(p => {
+            if (window.FILTER_GENDER === 'Hombre') return p.genero === 'Hombre' || p.genero === 'Unisex';
+            if (window.FILTER_GENDER === 'Mujer') return p.genero === 'Mujer' || p.genero === 'Unisex';
+            return p.genero === window.FILTER_GENDER; // Niños, Niñas
+        });
+    }
+
     if (available.length === 0) {
-        grid.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:3rem; grid-column:1/-1; font-size:1.1rem;">Pronto subiremos más tenis en promoción. ¡Escríbenos por WhatsApp y te conseguimos los que buscas! 👟</p>';
+        let msg = window.FILTER_GENDER ? `Pronto subiremos más tenis para ${window.FILTER_GENDER}.` : "Pronto subiremos más tenis en promoción.";
+        grid.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:3rem; grid-column:1/-1; font-size:1.1rem;">${msg} ¡Escríbenos por WhatsApp y te conseguimos los que buscas! 👟</p>`;
         return;
     }
 

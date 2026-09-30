@@ -90,7 +90,7 @@ input, select, textarea { font-family: inherit; }
 
 .nav-menu {
     display: flex;
-    gap: 2rem;
+    gap: 4rem;
     align-items: center;
 }
 
@@ -731,7 +731,7 @@ input, select, textarea { font-family: inherit; }
 
 .footer-menu {
     display: flex;
-    gap: 2.5rem;
+    gap: 4rem;
     align-items: center;
     justify-content: center;
     flex: 1;
