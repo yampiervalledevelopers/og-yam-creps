@@ -49,27 +49,6 @@
                 <button type="submit" id="login-submit-btn" class="btn-primary w-full">Ingresar</button>
             </form>
         </div>
-        <!-- Sub-tab: Créditos -->
-        <section id="admin-creditos" class="admin-section hidden">
-            <div class="kpi-grid">
-                <div class="kpi-card">
-                    <h4 style="color:var(--text-muted);">Total por Cobrar</h4>
-                    <p id="kpi-creditos-total" class="kpi-value" style="color:var(--neon-green);"></p>
-                </div>
-                <div class="kpi-card">
-                    <h4 style="color:var(--text-muted);">Créditos Activos</h4>
-                    <p id="kpi-creditos-activos" class="kpi-value">0</p>
-                </div>
-                <div class="kpi-card" style="border-left:4px solid #ff3333;">
-                    <h4 style="color:var(--text-muted);">Mora Total</h4>
-                    <p id="kpi-creditos-mora" class="kpi-value" style="color:#ff3333;"></p>
-                </div>
-            </div>
-            <div class="admin-card" style="margin-top:2rem;">
-                <h3>Cartera de Clientes</h3>
-                <div id="creditos-list" class="list-container"></div>
-            </div>
-        </section>
     </main>
 
     <!-- PANEL DE CONTROL (SOLO VISIBLE TRAS LOGIN) -->
@@ -261,6 +240,28 @@
             <div class="admin-card list-card">
                 <h3>Historial de Ventas</h3>
                 <div id="ventas-list" class="list-container" style="overflow-x:auto;"></div>
+            </div>
+        </section>
+
+        <!-- Sub-tab: Créditos -->
+        <section id="admin-creditos" class="admin-section hidden">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <h4 style="color:var(--text-muted);">Total por Cobrar</h4>
+                    <p id="kpi-creditos-total" class="kpi-value" style="color:var(--neon-green);"></p>
+                </div>
+                <div class="kpi-card">
+                    <h4 style="color:var(--text-muted);">Créditos Activos</h4>
+                    <p id="kpi-creditos-activos" class="kpi-value">0</p>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid #ff3333;">
+                    <h4 style="color:var(--text-muted);">Mora Total</h4>
+                    <p id="kpi-creditos-mora" class="kpi-value" style="color:#ff3333;"></p>
+                </div>
+            </div>
+            <div class="admin-card" style="margin-top:2rem;">
+                <h3>Cartera de Clientes</h3>
+                <div id="creditos-list" class="list-container"></div>
             </div>
         </section>
     </main>

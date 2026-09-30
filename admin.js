@@ -1,4 +1,4 @@
-/**
+﻿/**
  * O'G YAM CREPS — Panel de Administración (admin.js)
  * Firebase Auth + Firestore. Completamente separado de la tienda pública.
  */
@@ -20,6 +20,7 @@ db.enablePersistence().catch(() => {});
 let products = [];
 let providers = [];
 let ventas = [];
+let creditos = [];
 let editingProductId = null;
 let currentSoldProduct = null;
 
@@ -108,15 +109,14 @@ function listenData() {
         renderDashboard();
     });
 
-    db.collection('creditos').orderBy('fechaVenta', 'desc').onSnapshot(snap => {
-        if (typeof creditos !== 'undefined') {
-            creditos = [];
-            snap.forEach(doc => creditos.push({ id: doc.id, ...doc.data() }));
-            if (typeof renderCreditos === 'function') renderCreditos();
-            if (typeof updateClientDatalist === 'function') updateClientDatalist();
-            renderDashboard();
-        }
-    });
+    db.collection('creditos').onSnapshot(snap => {
+        creditos = [];
+        snap.forEach(doc => creditos.push({ id: doc.id, ...doc.data() }));
+        creditos.sort((a, b) => (b.fechaVenta || 0) - (a.fechaVenta || 0));
+        if (typeof renderCreditos === 'function') renderCreditos();
+        if (typeof updateClientDatalist === 'function') updateClientDatalist();
+        renderDashboard();
+    }, err => { console.error('Error cargando creditos:', err); });
     db.collection('ventas').orderBy('fecha', 'desc').onSnapshot(snap => {
         ventas = [];
         snap.forEach(doc => ventas.push({ id: doc.id, ...doc.data() }));
@@ -841,7 +841,7 @@ function getTotalStock(prod) {
 // ==========================================
 // CREDITOS
 // ==========================================
-window.creditos = [];
+// creditos ya declarado arriba
 let currentAbonoCredito = null;
 
 window.renderCreditos = function() {
