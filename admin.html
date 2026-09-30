@@ -66,6 +66,7 @@
                 <button id="tab-proveedores" class="admin-tab-btn">📦 Proveedores</button>
                 <button id="tab-ventas" class="admin-tab-btn">💰 Ventas</button>
                 <button id="tab-creditos" class="admin-tab-btn">💳 Créditos</button>
+                <button id="tab-caja" class="admin-tab-btn" style="color: #00e5ff;">💵 Caja</button>
             </div>
         </div>
 
@@ -284,7 +285,7 @@
             <div class="admin-card" style="margin-top:2rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
                     <h3>Historial de Movimientos</h3>
-                    <button class="btn-primary" onclick="transaccion-modal.classList.remove('hidden')">➕ Nuevo Movimiento Manual</button>
+                    <button class="btn-primary" onclick="$('transaccion-modal').classList.remove('hidden')">➕ Nuevo Movimiento Manual</button>
                 </div>
                 <div class="table-responsive">
                     <table class="admin-table">
