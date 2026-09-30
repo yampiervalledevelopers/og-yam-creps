@@ -1094,14 +1094,15 @@ window.deleteCredito = async id => {
     }
 };
 
+
 // ==========================================
 // CAJA (FINANZAS)
 // ==========================================
 window.renderCaja = function() {
-    const list = caja-list;
-    const saldoEl = kpi-caja-saldo;
-    const ingresosEl = kpi-caja-ingresos;
-    const egresosEl = kpi-caja-egresos;
+    const list = $('caja-list');
+    const saldoEl = $('kpi-caja-saldo');
+    const ingresosEl = $('kpi-caja-ingresos');
+    const egresosEl = $('kpi-caja-egresos');
     
     if (!list) return;
 
@@ -1123,15 +1124,15 @@ window.renderCaja = function() {
         const color = t.tipo === 'ingreso' ? 'var(--neon-green)' : '#ff3333';
         const signo = t.tipo === 'ingreso' ? '+' : '-';
         
-        html += <tr style="border-bottom:1px solid #222;">
-            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted);"></td>
-            <td style="padding:0.7rem;font-weight:600;"></td>
-            <td style="padding:0.7rem;color:;"><span class="badge" style="background:22;color:"></span></td>
-            <td style="padding:0.7rem;color:;font-weight:bold;"></td>
+        html += `<tr style="border-bottom:1px solid #222;">
+            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted);">${formatDate(t.fecha)}</td>
+            <td style="padding:0.7rem;font-weight:600;">${t.concepto}</td>
+            <td style="padding:0.7rem;color:${color};"><span class="badge" style="background:${color}22;color:${color}">${t.tipo.toUpperCase()}</span></td>
+            <td style="padding:0.7rem;color:${color};font-weight:bold;">${signo}${formatCOP(monto)}</td>
             <td style="padding:0.7rem;text-align:center;">
-                <button onclick="deleteTransaccion('')" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Movimiento">❌</button>
+                <button onclick="deleteTransaccion('${t.id}')" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Movimiento">❌</button>
             </td>
-        </tr>;
+        </tr>`;
     });
 
     if (transacciones.length === 0) {
@@ -1153,13 +1154,13 @@ window.deleteTransaccion = async function(id) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    transaccion-modal-close?.addEventListener('click', () => transaccion-modal.classList.add('hidden'));
+    $('transaccion-modal-close')?.addEventListener('click', () => $('transaccion-modal').classList.add('hidden'));
     
-    form-transaccion?.addEventListener('submit', async e => {
+    $('form-transaccion')?.addEventListener('submit', async e => {
         e.preventDefault();
-        const tipo = trans-tipo.value;
-        const concepto = trans-concepto.value.trim();
-        const monto = parseInt(trans-monto.value);
+        const tipo = $('trans-tipo').value;
+        const concepto = $('trans-concepto').value.trim();
+        const monto = parseInt($('trans-monto').value);
         
         try {
             await db.collection('transacciones').add({
@@ -1169,8 +1170,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 fecha: Date.now(),
                 manual: true
             });
-            transaccion-modal.classList.add('hidden');
-            form-transaccion.reset();
+            $('transaccion-modal').classList.add('hidden');
+            $('form-transaccion').reset();
         } catch (err) {
             alert('Error guardando transacción: ' + err.message);
         }
