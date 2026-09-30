@@ -944,11 +944,11 @@ window.renderCreditos = function() {
         let roiHtml = '';
         if (costo > 0) {
             if (totalPagado < costo) {
-                roiHtml = <span style="background:#ff333333;color:#ff3333;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Aún no recuperas la inversión">🔴 Déficit (Falta  para empatar)</span>;
+                roiHtml = `<span style="background:#ff333333;color:#ff3333;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Aún no recuperas la inversión">🔴 Déficit (Falta ${formatCOP(costo - totalPagado)} para empatar)</span>`;
             } else if (totalPagado === costo) {
-                roiHtml = <span style="background:#ffaa0033;color:#ffaa00;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Inversión recuperada">🟡 Equilibrio Alcanzado</span>;
+                roiHtml = `<span style="background:#ffaa0033;color:#ffaa00;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Inversión recuperada">🟡 Equilibrio Alcanzado</span>`;
             } else {
-                roiHtml = <span style="background:#00ff8833;color:var(--neon-green);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Todo lo nuevo es ganancia">🟢 Ganancia (+)</span>;
+                roiHtml = `<span style="background:#00ff8833;color:var(--neon-green);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Todo lo nuevo es ganancia">🟢 Ganancia (+${formatCOP(totalPagado - costo)})</span>`;
             }
         }
 
