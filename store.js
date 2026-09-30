@@ -126,10 +126,61 @@ function renderStore() {
 
 // === MODAL DE PRODUCTO ===
 function initModals() {
-    $('modal-close')?.addEventListener('click', () => $('product-modal').classList.add('hidden'));
-    $('product-modal')?.addEventListener('click', e => {
-        if (e.target === $('product-modal')) $('product-modal').classList.add('hidden');
+    const resetZoom = () => {
+        const c = document.querySelector('.modal-image-container');
+        if (c) c.classList.remove('zoomed');
+    };
+    
+    $('modal-close')?.addEventListener('click', () => {
+        $('product-modal').classList.add('hidden');
+        resetZoom();
     });
+    $('product-modal')?.addEventListener('click', e => {
+        if (e.target === $('product-modal')) {
+            $('product-modal').classList.add('hidden');
+            resetZoom();
+        }
+    });
+
+    const imgContainer = document.querySelector('.modal-image-container');
+    const img = $('modal-img');
+    if (imgContainer && img) {
+        // Desktop zoom pan
+        imgContainer.addEventListener('mousemove', e => {
+            if (!imgContainer.classList.contains('zoomed')) return;
+            const rect = imgContainer.getBoundingClientRect();
+            const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+            const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+            img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+        });
+
+        // Mobile touch pan
+        imgContainer.addEventListener('touchmove', e => {
+            if (!imgContainer.classList.contains('zoomed')) return;
+            e.preventDefault(); // Prevents page scrolling while panning
+            const touch = e.touches[0];
+            const rect = imgContainer.getBoundingClientRect();
+            const xPercent = Math.max(0, Math.min(100, ((touch.clientX - rect.left) / rect.width) * 100));
+            const yPercent = Math.max(0, Math.min(100, ((touch.clientY - rect.top) / rect.height) * 100));
+            img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+        }, { passive: false });
+
+        // Toggle zoom
+        imgContainer.addEventListener('click', e => {
+            if (e.target.closest('.modal-nav-btn') || e.target.closest('.modal-thumbs-container')) return;
+            
+            if (imgContainer.classList.contains('zoomed')) {
+                imgContainer.classList.remove('zoomed');
+                img.style.transformOrigin = 'center center';
+            } else {
+                imgContainer.classList.add('zoomed');
+                const rect = imgContainer.getBoundingClientRect();
+                const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+                const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+                img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+            }
+        });
+    }
 }
 
 window.currentModalPhotos = [];
@@ -139,7 +190,12 @@ window.changeModalImg = function(idx) {
     if (!currentModalPhotos || currentModalPhotos.length === 0) return;
     currentPhotoIndex = idx;
     const img = $('modal-img');
-    if (img) img.src = currentModalPhotos[idx];
+    const container = document.querySelector('.modal-image-container');
+    if (container) container.classList.remove('zoomed');
+    if (img) {
+        img.src = currentModalPhotos[idx];
+        img.style.transformOrigin = 'center center';
+    }
 
     // Resaltar la miniatura activa
     document.querySelectorAll('.modal-thumb-item').forEach((t, i) => {
