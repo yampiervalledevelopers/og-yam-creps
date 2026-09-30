@@ -112,11 +112,12 @@
         <!-- Sub-tab: Productos -->
         <section id="admin-productos" class="admin-section active">
             <div class="kpi-dashboard">
-                <div class="kpi-card"><h4>Invertido en Stock</h4><p id="kpi-invertido">$0</p></div>
+                <div class="kpi-card"><h4>Inversión (Bodega)</h4><p id="kpi-invertido" style="color:var(--neon-green)">$0</p></div>
                 <div class="kpi-card"><h4>Venta Potencial</h4><p id="kpi-venta-potencial">$0</p></div>
                 <div class="kpi-card highlight"><h4>Ganancia Potencial</h4><p id="kpi-ganancia-potencial">$0</p></div>
+                <div class="kpi-card"><h4>Pares Bodega</h4><p id="kpi-stock-bodega">0</p></div>
+                <div class="kpi-card"><h4>Pares Proveedor</h4><p id="kpi-stock-prov" style="color:#aaa;">0</p></div>
                 <div class="kpi-card"><h4>Ganancia Realizada</h4><p id="kpi-ganancia-realizada">$0</p></div>
-                <div class="kpi-card"><h4>Pares en Stock</h4><p id="kpi-stock">0</p></div>
                 <div class="kpi-card breakdown"><h4>Desglose por Proveedor</h4><div id="kpi-proveedores-breakdown"></div></div>
             </div>
 
@@ -183,9 +184,15 @@
                             </div>
                         </div>
 
-                        <div class="form-group size-grid-group">
-                            <label>Tallas disponibles (Toca para activar, ajusta stock)</label>
-                            <div id="size-stock-grid" class="size-stock-grid"></div>
+                        <div class="form-row" style="margin-bottom: 1rem;">
+                            <div class="form-group flex-1">
+                                <label style="color:var(--neon-green)">📦 Stock en Bodega (Ya pagado)</label>
+                                <div id="size-stock-grid-bodega" class="size-stock-grid"></div>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label style="color:#aaa">🚚 Stock en Proveedor (Bajo pedido)</label>
+                                <div id="size-stock-grid-proveedor" class="size-stock-grid"></div>
+                            </div>
                         </div>
 
                         <div class="form-row">
@@ -240,13 +247,20 @@
     <div id="sell-modal" class="modal hidden">
         <div class="modal-content small-modal">
             <button id="sell-modal-close" class="modal-close">&times;</button>
-            <h3>Marcar como Vendido</h3>
+            <h3 style="color:var(--neon-green);">Registrar Venta</h3>
             <p id="sell-product-name" style="margin-bottom:1rem; font-weight:600;"></p>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label>Origen de la Venta</label>
+                <select id="sell-origen-select" style="margin-top:0.5rem; width:100%; padding:0.8rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);">
+                    <option value="bodega">📦 Bodega (Mi inventario)</option>
+                    <option value="proveedor">🚚 Proveedor (Bajo pedido)</option>
+                </select>
+            </div>
             <div class="form-group">
                 <label>¿Qué talla se vendió?</label>
-                <select id="sell-size-select" style="margin-top:0.5rem;"></select>
+                <select id="sell-size-select" style="margin-top:0.5rem; width:100%; padding:0.8rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);"></select>
             </div>
-            <button id="confirm-sell-btn" class="btn-primary w-full" style="margin-top:1rem;">Confirmar Venta</button>
+            <button id="confirm-sell-btn" class="btn-primary w-full" style="margin-top:1rem;">Confirmar Venta 💵</button>
         </div>
     </div>
 

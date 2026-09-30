@@ -221,14 +221,23 @@ function initProductForm() {
     $('form-producto').addEventListener('submit', async e => {
         e.preventDefault();
 
-        const tallas = {};
-        document.querySelectorAll('.size-stock-item.active').forEach(item => {
+        const tallasBodega = {};
+        const tallasProveedor = {};
+        const tallas = {}; // Combined for public store
+
+        document.querySelectorAll('#size-stock-grid-bodega .size-stock-item.active').forEach(item => {
             const size = item.dataset.size;
             const qty = parseInt(item.querySelector('.size-input')?.value) || 1;
-            if (qty > 0) tallas[size] = qty;
+            if (qty > 0) { tallasBodega[size] = qty; tallas[size] = (tallas[size] || 0) + qty; }
         });
 
-        if (Object.keys(tallas).length === 0) { alert('Activa al menos una talla.'); return; }
+        document.querySelectorAll('#size-stock-grid-proveedor .size-stock-item.active').forEach(item => {
+            const size = item.dataset.size;
+            const qty = parseInt(item.querySelector('.size-input')?.value) || 1;
+            if (qty > 0) { tallasProveedor[size] = qty; tallas[size] = (tallas[size] || 0) + qty; }
+        });
+
+        if (Object.keys(tallas).length === 0) { alert('Activa al menos una talla en bodega o proveedor.'); return; }
         if (!$('prod-proveedor').value) { alert('Selecciona el proveedor.'); return; }
 
         const btn = $('btn-save-prod');
@@ -242,13 +251,18 @@ function initProductForm() {
             color: $('prod-color')?.value.trim() || '',
             fotos: currentPhotos.slice(),
             foto: currentPhotos.length > 0 ? currentPhotos[0] : '',
+            tallasBodega,
+            tallasProveedor,
             tallas,
             costoProveedor: parseFloat($('prod-costo-prov').value) || 0,
             costoEnvio: parseFloat($('prod-costo-envio').value) || 0,
-            precioVenta: parseFloat($('prod-precio-venta').value) || 0,
-            vendidos: 0,
-            fechaCreacion: Date.now()
+            precioVenta: parseFloat($('prod-precio-venta').value) || 0
         };
+
+        if (!editingProductId) {
+            data.vendidos = 0;
+            data.fechaCreacion = Date.now();
+        }
 
         try {
             if (editingProductId) {
@@ -283,8 +297,8 @@ function calcLive() {
     if (mEl) { mEl.textContent = margen.toFixed(1) + '%'; mEl.style.color = margen >= 0 ? 'var(--neon-green)' : '#ff3333'; }
 }
 
-function initSizeGrid() {
-    const grid = $('size-stock-grid');
+function createSizeGrid(gridId) {
+    const grid = $(gridId);
     if (!grid) return;
     grid.innerHTML = '';
     for (let s = 35; s <= 45; s++) {
@@ -301,6 +315,11 @@ function initSizeGrid() {
         });
         grid.appendChild(item);
     }
+}
+
+function initSizeGrid() {
+    createSizeGrid('size-stock-grid-bodega');
+    createSizeGrid('size-stock-grid-proveedor');
 }
 
 function resetProductForm() {
@@ -344,8 +363,22 @@ function renderAdminProducts() {
         const provName = prov ? prov.nombre : 'Sin asignar';
         const stock = getTotalStock(prod);
         const isSoldOut = stock === 0;
-        const tallasHtml = Object.entries(prod.tallas || {}).filter(([, q]) => q > 0)
-            .map(([t, q]) => `<span class="size-badge">${t} (${q})</span>`).join(' ');
+        
+        const formatSizes = (dict, icon) => Object.entries(dict || {}).filter(([, q]) => q > 0)
+            .map(([t, q]) => `<span class="size-badge">${t} (${q})</span>`).join(' ') || '-';
+            
+        const retroStock = (!prod.tallasBodega && !prod.tallasProveedor) ? prod.tallas : null;
+        
+        let tallasHtml = '';
+        if (retroStock) {
+            tallasHtml = `<span>🚚 Prov:</span> ${formatSizes(retroStock, '')}`;
+        } else {
+            const hasBod = Object.values(prod.tallasBodega || {}).some(q => q>0);
+            const hasProv = Object.values(prod.tallasProveedor || {}).some(q => q>0);
+            if (hasBod) tallasHtml += `<span style="color:var(--neon-green)">📦 Bod:</span> ${formatSizes(prod.tallasBodega)} `;
+            if (hasProv) tallasHtml += `<span style="color:#aaa">🚚 Prov:</span> ${formatSizes(prod.tallasProveedor)}`;
+            if (!hasBod && !hasProv) tallasHtml = 'Sin tallas';
+        }
             
         let mainPhoto = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
 
@@ -386,11 +419,22 @@ window.editProduct = id => {
     currentPhotos = prod.fotos || (prod.foto ? [prod.foto] : []);
     renderPhotosGrid();
     
-    document.querySelectorAll('.size-stock-item').forEach(item => {
+    document.querySelectorAll('#size-stock-grid-bodega .size-stock-item').forEach(item => {
         const size = item.dataset.size, input = item.querySelector('.size-input');
-        if (prod.tallas?.[size] > 0) { item.classList.add('active'); input.disabled = false; input.value = prod.tallas[size]; }
+        if (prod.tallasBodega?.[size] > 0) { item.classList.add('active'); input.disabled = false; input.value = prod.tallasBodega[size]; }
         else { item.classList.remove('active'); input.disabled = true; input.value = 1; }
     });
+
+    document.querySelectorAll('#size-stock-grid-proveedor .size-stock-item').forEach(item => {
+        const size = item.dataset.size, input = item.querySelector('.size-input');
+        // Retro-compatibilidad: si no existe tallasProveedor ni tallasBodega, se asume que las tallas antiguas están en Proveedor
+        const retroQty = (!prod.tallasBodega && !prod.tallasProveedor && prod.tallas?.[size]) ? prod.tallas[size] : 0;
+        const finalQty = prod.tallasProveedor?.[size] || retroQty;
+        
+        if (finalQty > 0) { item.classList.add('active'); input.disabled = false; input.value = finalQty; }
+        else { item.classList.remove('active'); input.disabled = true; input.value = 1; }
+    });
+
     calcLive();
     window.scrollTo({ top: $('form-producto').offsetTop - 80, behavior: 'smooth' });
 };
@@ -415,21 +459,55 @@ window.promptSell = id => {
     if (!prod) return;
     currentSoldProduct = prod;
     $('sell-product-name').textContent = `${prod.nombre} (${prod.marca})`;
-    const select = $('sell-size-select');
-    select.innerHTML = '<option value="">Selecciona talla...</option>' +
-        Object.entries(prod.tallas || {}).filter(([, q]) => q > 0)
-            .map(([t, q]) => `<option value="${t}">Talla ${t} (${q} en stock)</option>`).join('');
+    
+    // Convert legacy tallas to Proveedor if missing
+    if (!prod.tallasBodega && !prod.tallasProveedor && prod.tallas) {
+        prod.tallasProveedor = prod.tallas;
+        prod.tallasBodega = {};
+    }
+    prod.tallasBodega = prod.tallasBodega || {};
+    prod.tallasProveedor = prod.tallasProveedor || {};
+
+    const origenSelect = $('sell-origen-select');
+    const sizeSelect = $('sell-size-select');
+    
+    const updateSizeOptions = () => {
+        const origen = origenSelect.value;
+        const sourceDict = origen === 'bodega' ? prod.tallasBodega : prod.tallasProveedor;
+        sizeSelect.innerHTML = '<option value="">Selecciona talla...</option>' +
+            Object.entries(sourceDict).filter(([, q]) => q > 0)
+                .map(([t, q]) => `<option value="${t}">Talla ${t} (${q} en stock)</option>`).join('');
+    };
+    
+    origenSelect.onchange = updateSizeOptions;
+    // Default to Bodega if it has any stock, otherwise Proveedor
+    const hasBodega = Object.values(prod.tallasBodega).some(q => q > 0);
+    origenSelect.value = hasBodega ? 'bodega' : 'proveedor';
+    updateSizeOptions();
+
     $('sell-modal').classList.remove('hidden');
 };
 
 async function confirmSale() {
     const select = $('sell-size-select');
+    const origen = $('sell-origen-select').value;
     if (!select?.value || !currentSoldProduct) { alert('Selecciona la talla vendida.'); return; }
+    
     const size = select.value, prod = currentSoldProduct;
-    if (!prod.tallas[size] || prod.tallas[size] <= 0) { alert('Sin stock de esa talla.'); return; }
+    const sourceDict = origen === 'bodega' ? prod.tallasBodega : prod.tallasProveedor;
+    
+    if (!sourceDict[size] || sourceDict[size] <= 0) { alert('Sin stock en ' + origen); return; }
 
-    prod.tallas[size] -= 1;
-    if (prod.tallas[size] === 0) delete prod.tallas[size];
+    // Deduct stock
+    sourceDict[size] -= 1;
+    if (sourceDict[size] === 0) delete sourceDict[size];
+    
+    // Update combined tallas
+    prod.tallas = prod.tallas || {};
+    if (prod.tallas[size] && prod.tallas[size] > 0) {
+        prod.tallas[size] -= 1;
+        if (prod.tallas[size] === 0) delete prod.tallas[size];
+    }
 
     const prov = providers.find(p => p.id === prod.proveedorId);
     const costoTotal = (prod.costoProveedor || 0) + (prod.costoEnvio || 0);
@@ -439,12 +517,21 @@ async function confirmSale() {
         await db.collection('ventas').add({
             productoId: prod.id, nombreProducto: prod.nombre, marca: prod.marca,
             talla: size, precioVenta: prod.precioVenta, costoTotal, ganancia,
-            proveedor: prov ? prov.nombre : 'Local', fecha: Date.now()
+            proveedor: prov ? prov.nombre : 'Local', 
+            origen: origen,
+            fecha: Date.now()
         });
-        await db.collection('productos').doc(prod.id).update({ tallas: prod.tallas, vendidos: (prod.vendidos || 0) + 1 });
+        
+        await db.collection('productos').doc(prod.id).update({ 
+            tallasBodega: prod.tallasBodega,
+            tallasProveedor: prod.tallasProveedor,
+            tallas: prod.tallas, 
+            vendidos: (prod.vendidos || 0) + 1 
+        });
+        
         $('sell-modal').classList.add('hidden');
         currentSoldProduct = null;
-        alert(`¡Venta registrada! Ganancia: ${formatCOP(ganancia)} 🎉`);
+        alert(`¡Venta registrada de ${origen}! Ganancia: ${formatCOP(ganancia)} 🎉`);
     } catch (e) { alert("Error: " + e.message); }
 }
 
@@ -505,29 +592,45 @@ function populateProviderDropdown() {
 // KPIs
 // ==========================================
 function renderDashboard() {
-    let totalInvertido = 0, valorVenta = 0, enStock = 0;
+    let invertidoBodega = 0, ventaBodega = 0, stockBodegaTotal = 0, stockProvTotal = 0;
     const provStats = {};
 
     products.forEach(p => {
-        const stock = getTotalStock(p);
-        if (stock > 0) {
-            enStock += stock;
-            const inv = ((p.costoProveedor || 0) + (p.costoEnvio || 0)) * stock;
-            const ven = (p.precioVenta || 0) * stock;
-            totalInvertido += inv; valorVenta += ven;
+        const stockBodega = Object.values(p.tallasBodega || {}).reduce((s, c) => s + c, 0);
+        // Retro-compat: if missing both, treat 'tallas' as Proveedor
+        const retroStock = (!p.tallasBodega && !p.tallasProveedor) ? getTotalStock(p) : 0;
+        const stockProv = Object.values(p.tallasProveedor || {}).reduce((s, c) => s + c, 0) + retroStock;
+        
+        stockBodegaTotal += stockBodega;
+        stockProvTotal += stockProv;
+
+        if (stockBodega > 0) {
+            const inv = ((p.costoProveedor || 0) + (p.costoEnvio || 0)) * stockBodega;
+            const ven = (p.precioVenta || 0) * stockBodega;
+            invertidoBodega += inv; 
+            ventaBodega += ven;
+        }
+
+        const totalPares = stockBodega + stockProv;
+        if (totalPares > 0) {
             const pid = p.proveedorId || 'x';
             if (!provStats[pid]) provStats[pid] = { invertido: 0, venta: 0, pares: 0 };
-            provStats[pid].invertido += inv; provStats[pid].venta += ven; provStats[pid].pares += stock;
+            const invTotal = ((p.costoProveedor || 0) + (p.costoEnvio || 0)) * totalPares;
+            const venTotal = (p.precioVenta || 0) * totalPares;
+            provStats[pid].invertido += invTotal; 
+            provStats[pid].venta += venTotal; 
+            provStats[pid].pares += totalPares;
         }
     });
 
     const gananciaReal = ventas.reduce((s, v) => s + (v.ganancia || 0), 0);
     const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-    set('kpi-invertido', formatCOP(totalInvertido));
-    set('kpi-venta-potencial', formatCOP(valorVenta));
-    set('kpi-ganancia-potencial', formatCOP(valorVenta - totalInvertido));
+    set('kpi-invertido', formatCOP(invertidoBodega));
+    set('kpi-venta-potencial', formatCOP(ventaBodega));
+    set('kpi-ganancia-potencial', formatCOP(ventaBodega - invertidoBodega));
     set('kpi-ganancia-realizada', formatCOP(gananciaReal));
-    set('kpi-stock', enStock);
+    set('kpi-stock-bodega', stockBodegaTotal);
+    set('kpi-stock-prov', stockProvTotal);
     set('kpi-ventas-total', formatCOP(gananciaReal));
 
     const bd = $('kpi-proveedores-breakdown');
@@ -552,20 +655,23 @@ function renderSales() {
         list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">Sin ventas aún. 📊</p>';
         return;
     }
-    let html = `<table style="width:100%;border-collapse:collapse;min-width:550px;">
+        let html = `<table style="width:100%;border-collapse:collapse;min-width:550px;">
         <thead><tr style="text-align:left;border-bottom:1px solid var(--border-color);">
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Fecha</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Tenis</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Talla</th>
+            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Origen</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Proveedor</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Venta</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Ganancia</th>
         </tr></thead><tbody>`;
     ventas.forEach(v => {
+        const origenBadge = v.origen === 'bodega' ? '📦 Bodega' : (v.origen === 'proveedor' ? '🚚 Prov' : '📦 Bodega');
         html += `<tr style="border-bottom:1px solid #222;">
             <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted);">${formatDate(v.fecha)}</td>
             <td style="padding:0.7rem;font-weight:600;">${v.nombreProducto} <small style="color:var(--neon-green);">(${v.marca})</small></td>
             <td style="padding:0.7rem;"><span class="size-badge">${v.talla}</span></td>
+            <td style="padding:0.7rem;font-size:0.85rem;color:var(--neon-green)">${origenBadge}</td>
             <td style="padding:0.7rem;font-size:0.85rem;">${v.proveedor}</td>
             <td style="padding:0.7rem;">${formatCOP(v.precioVenta)}</td>
             <td style="padding:0.7rem;color:${v.ganancia >= 0 ? 'var(--neon-green)' : '#ff3333'};font-weight:bold;">${formatCOP(v.ganancia)}</td>
