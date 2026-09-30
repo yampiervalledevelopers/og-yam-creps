@@ -197,21 +197,29 @@ input, select, textarea { font-family: inherit; }
 
 /* CATALOG */
 .view {
-    padding: 3rem 2rem;
+    padding: 2rem 1rem;
     max-width: 1200px;
     margin: 0 auto;
 }
 
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 2rem;
+    /* 2 columns on mobile (min-width is 0) */
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+}
+
+@media (min-width: 768px) {
+    .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1.5rem;
+    }
 }
 
 /* CARDS */
 .product-card {
     background: var(--bg-card);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s;
     border: 1px solid var(--border-color);
@@ -220,54 +228,75 @@ input, select, textarea { font-family: inherit; }
 }
 
 .product-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-3px);
     box-shadow: var(--shadow-neon);
     border-color: rgba(57, 255, 20, 0.3);
 }
 
+.card-img-wrapper {
+    height: 180px;
+    background: #111;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (min-width: 768px) {
+    .card-img-wrapper { height: 230px; }
+}
+
 .card-img {
     width: 100%;
-    height: 250px;
+    height: 100%;
     object-fit: cover;
-    background: #000;
     cursor: pointer;
 }
 
+.card-no-img {
+    font-size: 3rem;
+    color: #333;
+}
+
 .card-content {
-    padding: 1.5rem;
+    padding: 0.6rem;
     display: flex;
     flex-direction: column;
     flex: 1;
+    gap: 0.2rem;
 }
 
 .brand-tag {
     color: var(--neon-green);
-    font-size: 1.2rem;
+    font-size: 0.85rem;
+    line-height: 1;
 }
 
 .card-title {
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
+    margin-bottom: 0.1rem;
+    font-size: 0.95rem;
+    line-height: 1.2;
 }
 
 .price {
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    margin-bottom: 0.3rem;
 }
 
 .sizes-badge-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.3rem;
-    margin-bottom: 1rem;
+    gap: 0.2rem;
+    margin-bottom: 0.5rem;
+    min-height: 24px;
 }
 
 .size-badge {
     background: #222;
-    padding: 0.2rem 0.5rem;
+    padding: 0.15rem 0.3rem;
     border-radius: 2px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     border: 1px solid #444;
 }
@@ -275,9 +304,10 @@ input, select, textarea { font-family: inherit; }
 .btn-wa {
     background: var(--wa-green);
     color: #fff;
-    padding: 0.8rem;
+    padding: 0.6rem 0.4rem;
     border-radius: var(--radius-sm);
     font-weight: 600;
+    font-size: 0.85rem;
     text-align: center;
     margin-top: auto;
     transition: background 0.2s;

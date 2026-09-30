@@ -51,17 +51,17 @@ function renderStore() {
         const sizesHtml = sizes.map(t => `<span class="size-badge">${t}</span>`).join('');
         return `
         <div class="product-card" onclick="openProductModal('${prod.id}')">
-            <div class="card-img-wrapper" style="height:230px; background:#111; overflow:hidden;">
+            <div class="card-img-wrapper">
                 ${prod.foto
-                    ? `<img src="${prod.foto}" class="card-img" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='';">`
-                    : `<div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:3.5rem;">👟</div>`}
+                    ? `<img src="${prod.foto}" class="card-img" onerror="this.src='';">`
+                    : `<div class="card-no-img">👟</div>`}
             </div>
             <div class="card-content">
                 <span class="brand-tag">${prod.marca}</span>
                 <p class="card-title">${prod.nombre}</p>
                 <p class="price">${formatCOP(prod.precioVenta)}</p>
                 <div class="sizes-badge-container">${sizesHtml}</div>
-                <button class="btn-wa" onclick="event.stopPropagation(); quickWhatsApp('${prod.id}')">Pedir por WhatsApp 💬</button>
+                <button class="btn-wa" onclick="event.stopPropagation(); quickWhatsApp('${prod.id}')">Pedir 💬</button>
             </div>
         </div>`;
     }).join('');
