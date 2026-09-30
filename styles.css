@@ -169,21 +169,28 @@ input, select, textarea { font-family: inherit; }
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
-.brand-name {
-    font-family: var(--font-heading);
-    font-size: 2.2rem;
-    color: #fff;
-    letter-spacing: 2px;
+.brand-logo-svg {
+    height: 45px;
+    width: auto;
+    max-width: 140px;
+    object-fit: contain;
+    filter: invert(1) brightness(100);
+    opacity: 0.7;
+    transition: all 0.3s ease;
 }
 
-.brand-name.nike { color: #fff; }
-.brand-name.jordan { color: #ff0000; text-shadow: 0 0 5px rgba(255,0,0,0.5); }
-.brand-name.adidas { color: #0071c5; text-shadow: 0 0 5px rgba(0,113,197,0.5); }
-.brand-name.newbalance { color: #cf0a2c; text-shadow: 0 0 5px rgba(207,10,44,0.5); }
-.brand-name.puma { color: #fff; }
-.brand-name.reebok { color: #0033a0; text-shadow: 0 0 5px rgba(0,51,160,0.5); }
-.brand-name.converse { color: #fff; }
-.brand-name.vans { color: #cc0000; text-shadow: 0 0 5px rgba(204,0,0,0.5); }
+.brand-card:hover .brand-logo-svg {
+    opacity: 1;
+}
+
+.brand-card:hover .brand-logo-svg.nike { filter: invert(1) brightness(100) drop-shadow(0 0 10px #ffffff); }
+.brand-card:hover .brand-logo-svg.jordan { filter: invert(1) brightness(100) drop-shadow(0 0 10px #ff0000); }
+.brand-card:hover .brand-logo-svg.adidas { filter: invert(1) brightness(100) drop-shadow(0 0 10px #0071c5); }
+.brand-card:hover .brand-logo-svg.nb { filter: invert(1) brightness(100) drop-shadow(0 0 10px #cf0a2c); }
+.brand-card:hover .brand-logo-svg.puma { filter: invert(1) brightness(100) drop-shadow(0 0 10px #ffffff); }
+.brand-card:hover .brand-logo-svg.reebok { filter: invert(1) brightness(100) drop-shadow(0 0 10px #0033a0); }
+.brand-card:hover .brand-logo-svg.converse { filter: invert(1) brightness(100) drop-shadow(0 0 10px #ffffff); }
+.brand-card:hover .brand-logo-svg.vans { filter: invert(1) brightness(100) drop-shadow(0 0 10px #cc0000); }
 
 @keyframes scrollLeft {
     0% { transform: translateX(0); }
