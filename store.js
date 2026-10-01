@@ -76,7 +76,7 @@ window.nextCardImg = function(id, dir) {
                 <button class="card-nav-btn right-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', 1)">&#10095;</button>
             ` : ''}
             ${mainPhoto 
-                ? `<img id="card-img-${prod.id}" src="${mainPhoto}" alt="${prod.nombre}" loading="lazy">` 
+                ? `<img id="card-img-${prod.id}" class="card-img" src="${mainPhoto}" alt="${prod.nombre}" loading="lazy">` 
                 : `<div style="height:250px; background:linear-gradient(45deg, #111, #222); display:flex; align-items:center; justify-content:center; color:#555;">Sin foto</div>`}
         </div>
         <div class="card-info">
@@ -129,8 +129,7 @@ window.renderStore = function() {
         if (!document.getElementById('promo-banner')) {
             const banner = document.createElement('div');
             banner.id = 'promo-banner';
-            banner.innerHTML = `<h1 style="text-align:center; font-family:'Bebas Neue', sans-serif; font-size:3rem; color:var(--neon-green); letter-spacing:2px; margin:2rem 0 0.5rem 0; text-shadow:0 0 10px rgba(0,255,136,0.3);">🔥 PROMOCIONES DEL DÍA 🔥</h1>
-            <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem;">Lleva tu estilo al siguiente nivel con ofertas divididas equitativamente.</p>`;
+            banner.innerHTML = `<div class="promo-marquee-container"><div class="promo-marquee-track"><span>🔥 PROMOCIONES DEL DÍA 🔥</span><span>ENVÍO A TODA COLOMBIA 🚀</span><span>🔥 PROMOCIONES DEL DÍA 🔥</span><span>ENVÍO A TODA COLOMBIA 🚀</span><span>🔥 PROMOCIONES DEL DÍA 🔥</span><span>ENVÍO A TODA COLOMBIA 🚀</span><span>🔥 PROMOCIONES DEL DÍA 🔥</span><span>ENVÍO A TODA COLOMBIA 🚀</span></div></div>`;
             grid.parentNode.insertBefore(banner, grid);
         }
         
@@ -154,7 +153,7 @@ window.renderStore = function() {
 
         let html = `
         <div style="margin: 2rem 0;">
-            <h2 style="font-family:'Bebas Neue', sans-serif; font-size:2.5rem; color:var(--neon-green); text-align:center; letter-spacing:2px; text-shadow:0 0 10px rgba(0,255,136,0.3);">🔥 PROMOCIONES EXCLUSIVAS 🔥</h2>
+            <div class="promo-marquee-container" style="margin-top:0; box-shadow:none;"><div class="promo-marquee-track"><span>🔥 PROMOCIONES EXCLUSIVAS 🔥</span><span>LLEVA TU ESTILO AL SIGUIENTE NIVEL 🚀</span><span>🔥 PROMOCIONES EXCLUSIVAS 🔥</span><span>LLEVA TU ESTILO AL SIGUIENTE NIVEL 🚀</span><span>🔥 PROMOCIONES EXCLUSIVAS 🔥</span><span>LLEVA TU ESTILO AL SIGUIENTE NIVEL 🚀</span><span>🔥 PROMOCIONES EXCLUSIVAS 🔥</span><span>LLEVA TU ESTILO AL SIGUIENTE NIVEL 🚀</span></div></div>
             <div class="horizontal-carousel">
                 ${promos.map(prod => createCardHtml(prod)).join('')}
             </div>
