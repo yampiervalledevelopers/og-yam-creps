@@ -329,3 +329,84 @@ function getTotalStock(prod) {
     if (!prod || !prod.tallas) return 0;
     return Object.values(prod.tallas).reduce((s, q) => s + (parseInt(q) || 0), 0);
 }
+
+// ==========================================
+// LIGHTBOX FULLSCREEN LOGIC
+// ==========================================
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+const lightboxClose = document.getElementById('lightbox-close');
+const lightboxPrev = document.getElementById('lightbox-prev');
+const lightboxNext = document.getElementById('lightbox-next');
+const lightboxCounter = document.getElementById('lightbox-counter');
+
+function updateLightbox() {
+    if (!currentModalPhotos || currentModalPhotos.length === 0) return;
+    lightboxImg.src = currentModalPhotos[currentPhotoIndex];
+    if (lightboxCounter) lightboxCounter.textContent = (currentPhotoIndex + 1) + ' / ' + currentModalPhotos.length;
+    
+    if (lightboxPrev) lightboxPrev.style.display = currentModalPhotos.length > 1 ? 'block' : 'none';
+    if (lightboxNext) lightboxNext.style.display = currentModalPhotos.length > 1 ? 'block' : 'none';
+}
+
+function openLightbox() {
+    if (!currentModalPhotos || currentModalPhotos.length === 0) return;
+    updateLightbox();
+    if (lightbox) lightbox.classList.remove('hidden');
+}
+
+function closeLightbox() {
+    if (lightbox) lightbox.classList.add('hidden');
+}
+
+function lightboxNavigate(dir) {
+    if (!currentModalPhotos) return;
+    currentPhotoIndex += dir;
+    if (currentPhotoIndex < 0) currentPhotoIndex = currentModalPhotos.length - 1;
+    if (currentPhotoIndex >= currentModalPhotos.length) currentPhotoIndex = 0;
+    
+    updateLightbox();
+    
+    // Sincronizar el modal original detrás
+    const img = document.getElementById('modal-img');
+    if (img) img.src = currentModalPhotos[currentPhotoIndex];
+    
+    document.querySelectorAll('.modal-thumb-item').forEach((el, i) => {
+        el.style.border = i === currentPhotoIndex ? '2px solid var(--neon-green)' : '2px solid transparent';
+        el.style.opacity = i === currentPhotoIndex ? '1' : '0.6';
+    });
+}
+
+// Bind Lightbox Events
+if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+if (lightboxPrev) lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); lightboxNavigate(-1); });
+if (lightboxNext) lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); lightboxNavigate(1); });
+if (lightbox) lightbox.addEventListener('click', e => {
+    if (e.target === lightbox || e.target === lightboxClose) closeLightbox();
+});
+
+// Bind click on modal image to open lightbox (y cancelar el zoom viejo si se hace click)
+const modalMainImg = document.getElementById('modal-img');
+if (modalMainImg) {
+    modalMainImg.style.cursor = 'zoom-in';
+    modalMainImg.addEventListener('click', (e) => {
+        e.stopPropagation(); // Evita que se active el zoom viejo del contenedor
+        openLightbox();
+    });
+}
+
+// Swipe Support para celular en el lightbox
+let touchstartX = 0;
+let touchendX = 0;
+
+if (lightboxImg) {
+    lightboxImg.addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+    }, {passive: true});
+
+    lightboxImg.addEventListener('touchend', e => {
+        touchendX = e.changedTouches[0].screenX;
+        if (touchendX < touchstartX - 50) lightboxNavigate(1);
+        if (touchendX > touchstartX + 50) lightboxNavigate(-1);
+    }, {passive: true});
+}

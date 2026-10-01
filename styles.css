@@ -917,3 +917,64 @@ input, select, textarea { font-family: inherit; }
     .modal-info .price { font-size: 1.8rem; }
     .small-modal { padding: 1.5rem; width: 95%; max-width: 380px; }
 }
+
+/* LIGHTBOX (PANTALLA COMPLETA) */
+.lightbox {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.95);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+.lightbox.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+#lightbox-img {
+    max-width: 95vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+}
+.lightbox-close {
+    position: absolute;
+    top: 20px; right: 20px;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    font-size: 2rem;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10001;
+    display: flex; align-items: center; justify-content: center;
+}
+.lightbox-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    padding: 1rem 0.5rem;
+    cursor: pointer;
+    z-index: 10001;
+    border-radius: var(--radius-sm);
+}
+.lightbox-nav-btn.left-btn { left: 10px; }
+.lightbox-nav-btn.right-btn { right: 10px; }
+.lightbox-counter {
+    position: absolute;
+    bottom: 20px;
+    color: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    background: rgba(0,0,0,0.5);
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+}
