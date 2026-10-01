@@ -978,3 +978,30 @@ input, select, textarea { font-family: inherit; }
     padding: 0.2rem 0.6rem;
     border-radius: 20px;
 }
+
+/* HORIZONTAL CAROUSEL FOR PROMOS */
+.horizontal-carousel {
+    display: flex;
+    overflow-x: auto;
+    gap: 1.5rem;
+    padding: 1rem 0.5rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+.horizontal-carousel::-webkit-scrollbar {
+    height: 8px;
+}
+.horizontal-carousel::-webkit-scrollbar-track {
+    background: #111;
+    border-radius: 4px;
+}
+.horizontal-carousel::-webkit-scrollbar-thumb {
+    background: var(--neon-green);
+    border-radius: 4px;
+}
+.horizontal-carousel .product-card {
+    min-width: 260px;
+    max-width: 280px;
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+}
