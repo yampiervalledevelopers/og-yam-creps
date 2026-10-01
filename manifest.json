@@ -1,0 +1,17 @@
+﻿{
+  "name": "O'G YAM CREPS",
+  "short_name": "YAM CREPS",
+  "description": "Los mejores tenis al mejor precio",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00ff88",
+  "icons": [
+    {
+      "src": "logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

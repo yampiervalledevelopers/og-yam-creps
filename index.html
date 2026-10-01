@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es-CO">
 <head>
     <meta charset="UTF-8">
@@ -12,6 +12,18 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <link rel="apple-touch-icon" href="logo.jpg">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').then(() => {
+            console.log('Service Worker Registered');
+          });
+        });
+      }
+    </script>
 </head>
 <body>
 
