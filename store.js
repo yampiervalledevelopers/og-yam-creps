@@ -582,10 +582,7 @@ if (lightboxImg) {
 if (lightboxImg) {
     let lastTap = 0;
     
-    // Clonamos para limpiar eventos previos por si acaso
-    let newImg = lightboxImg.cloneNode(true);
-    lightboxImg.parentNode.replaceChild(newImg, lightboxImg);
-    const img = document.getElementById('lightbox-img'); // re-fetch
+    const img = lightboxImg;
 
     // Doble Click PC
     img.addEventListener('dblclick', () => {
