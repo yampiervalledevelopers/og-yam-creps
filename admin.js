@@ -1,135 +1,3 @@
-// PROMOCIONES
-// ==========================================
-let storeConfig = { promoLimit: 8, promoRotation: 'random' };
-
-async function loadPromoConfig() {
-    try {
-        const doc = await db.collection('config').doc('store').get();
-        if (doc.exists) {
-            storeConfig = { ...storeConfig, ...doc.data() };
-        }
-        const limitEl = document.getElementById('promo-limit');
-        const rotEl = document.getElementById('promo-rotation');
-        if (limitEl) limitEl.value = storeConfig.promoLimit || 8;
-        if (rotEl) rotEl.value = storeConfig.promoRotation || 'random';
-    } catch(e) { console.error("Error loading config", e); }
-}
-
-setTimeout(loadPromoConfig, 1500);
-
-document.addEventListener('click', async (e) => {
-    if (e.target.id === 'btn-save-promo-config') {
-        const limit = parseInt(document.getElementById('promo-limit').value) || 8;
-        const rot = document.getElementById('promo-rotation').value;
-        try {
-            await db.collection('config').doc('store').set({ promoLimit: limit, promoRotation: rot }, { merge: true });
-            alert('Ajustes guardados correctamente.');
-        } catch(err) {
-            alert('Error al guardar ajustes.');
-            console.error(err);
-        }
-    }
-    
-    if (e.target.id === 'btn-apply-bulk-promo') {
-        const select = document.getElementById('bulk-promo-select');
-        if (!select) return;
-        const selectedIds = Array.from(select.selectedOptions).map(opt => opt.value);
-        if (selectedIds.length === 0) return alert('Selecciona al menos un producto.');
-        
-        const type = document.getElementById('bulk-promo-type').value;
-        let val = parseInt(document.getElementById('bulk-promo-value').value) || 0;
-        if (type !== 'percentage' && type !== 'clearance') val = 0;
-
-        const btn = document.getElementById('btn-apply-bulk-promo');
-        btn.textContent = 'Aplicando...';
-        btn.disabled = true;
-
-        try {
-            const batch = db.batch();
-            selectedIds.forEach(id => {
-                const ref = db.collection('productos').doc(id);
-                batch.update(ref, { 
-                    enPromocion: true, 
-                    tipoPromocion: type,
-                    descuento: val 
-                });
-            });
-            await batch.commit();
-            alert('Promoción aplicada a ' + selectedIds.length + ' producto(s).');
-        } catch(err) {
-            alert('Error al aplicar promoción');
-            console.error(err);
-        }
-        btn.textContent = 'Aplicar Promoción';
-        btn.disabled = false;
-    }
-});
-
-window.removePromo = async (id) => {
-    if (!confirm('¿Quitar de promociones?')) return;
-    try {
-        await db.collection('productos').doc(id).update({ enPromocion: false });
-    } catch(err) { console.error(err); }
-};
-
-window.updatePromoInline = async (id, field, value) => {
-    try {
-        await db.collection('productos').doc(id).update({ [field]: value });
-    } catch (err) { console.error(err); }
-};
-
-function renderAdminPromos() {
-    const select = document.getElementById('bulk-promo-select');
-    if (select) {
-        const noPromos = products.filter(p => !p.enPromocion);
-        select.innerHTML = noPromos.map(p => `<option value="${p.id}">${p.nombre} (${p.marca || 'Otro'})</option>`).join('');
-    }
-
-    const list = document.getElementById('active-promos-list');
-    const empty = document.getElementById('active-promos-empty');
-    if (!list || !empty) return;
-
-    const activePromos = products.filter(p => p.enPromocion);
-    
-    if (activePromos.length === 0) {
-        list.innerHTML = '';
-        empty.style.display = 'block';
-    } else {
-        empty.style.display = 'none';
-        list.innerHTML = activePromos.map(p => {
-            let pType = p.tipoPromocion || 'percentage';
-            let desc = p.descuento || 0;
-            return `
-            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;">
-                <div style="position:relative; width: 100%; aspect-ratio: 1/1;">
-                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" style="width:100%; height:100%; object-fit:cover;">
-                </div>
-                <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
-                    <div>
-                        <span style="font-size:0.8rem; background:var(--neon-green); color:#000; padding:2px 6px; border-radius:4px; font-weight:bold;">${p.marca}</span>
-                        ${p.codigo ? `<span style="font-size:0.8rem; background:#333; color:#fff; padding:2px 6px; border-radius:4px; margin-left:5px;">${p.codigo}</span>` : ''}
-                    </div>
-                    <strong style="font-size:1.1rem; line-height:1.2;">${p.nombre}</strong>
-                    
-                    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
-                        <select class="form-input" onchange="updatePromoInline('${p.id}', 'tipoPromocion', this.value)" style="padding:0.4rem; font-size:0.9rem;">
-                            <option value="percentage" ${pType === 'percentage' ? 'selected' : ''}>% Descuento</option>
-                            <option value="2x1" ${pType === '2x1' ? 'selected' : ''}>2x1</option>
-                            <option value="freeshipping" ${pType === 'freeshipping' ? 'selected' : ''}>Envío Gratis</option>
-                            <option value="clearance" ${pType === 'clearance' ? 'selected' : ''}>Remate</option>
-                        </select>
-                        
-                        <input type="number" class="form-input" onchange="updatePromoInline('${p.id}', 'descuento', parseInt(this.value) || 0)" value="${desc}" style="padding:0.4rem; font-size:0.9rem; display:${pType === 'percentage' || pType === 'clearance' ? 'block' : 'none'};" placeholder="% Descuento">
-                        
-                        <button class="btn-primary" style="background:#ff3333; padding:0.4rem; margin-top:0.2rem;" onclick="removePromo('${p.id}')">Quitar Promo</button>
-                    </div>
-                </div>
-            </div>
-            `;
-        }).join('');
-    }
-}
-
 ﻿/**
  * O'G YAM CREPS — Panel de Administración (admin.js)
  * Firebase Auth + Firestore. Completamente separado de la tienda pública.
@@ -948,65 +816,106 @@ function renderSales() {
 // ==========================================
 // PROMOCIONES
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-    $('btn-generate-promos')?.addEventListener('click', generateRandomPromos);
-});
+let storeConfig = { promoLimit: 8, promoRotation: 'random' };
 
-async function generateRandomPromos() {
-    if (!confirm('¿Seguro? Esto reemplazará las promociones actuales con 16 tenis al azar.')) return;
-    const btn = $('btn-generate-promos');
-    btn.disabled = true; btn.textContent = 'Generando...';
-    
+async function loadPromoConfig() {
     try {
-        const batch = db.batch();
-        // Quitar promos actuales
-        products.filter(p => p.enPromocion).forEach(p => {
-            batch.update(db.collection('productos').doc(p.id), { enPromocion: false, descuento: 0 });
-        });
-        
-        // Seleccionar 16 con stock al azar
-        let available = products.filter(p => getTotalStock(p) > 0);
-        let shuffled = available.sort(() => 0.5 - Math.random());
-        let selected = shuffled.slice(0, 16);
-        
-        selected.forEach(p => {
-            const r = Math.random();
-            let desc = 10;
-            if (r > 0.9) desc = 20;
-            else if (r > 0.7) desc = 15;
-            
-            batch.update(db.collection('productos').doc(p.id), { enPromocion: true, descuento: desc });
-        });
-        
-        await batch.commit();
-        alert('¡Nuevas promociones generadas! 🔥');
-    } catch(e) { alert('Error: ' + e.message); }
-    
-    btn.disabled = false; btn.textContent = '🎲 Generar 16 Promos al Azar Ahora';
+        const doc = await db.collection('config').doc('store').get();
+        if (doc.exists) {
+            storeConfig = { ...storeConfig, ...doc.data() };
+        }
+        const limitEl = document.getElementById('promo-limit');
+        const rotEl = document.getElementById('promo-rotation');
+        if (limitEl) limitEl.value = storeConfig.promoLimit || 8;
+        if (rotEl) rotEl.value = storeConfig.promoRotation || 'random';
+    } catch(e) { console.error("Error loading config", e); }
 }
 
-function renderAdminPromos() {
-    const list = $('promos-list');
-    if (!list) return;
-    
-    const promos = products.filter(p => p.enPromocion);
-    if (promos.length === 0) {
-        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No hay promociones fijadas. La tienda mostrará 16 al azar automáticamente.</p>';
-        return;
+setTimeout(loadPromoConfig, 1500);
+
+document.addEventListener('click', async (e) => {
+    if (e.target.id === 'btn-save-promo-config') {
+        const limit = parseInt(document.getElementById('promo-limit').value) || 8;
+        const rot = document.getElementById('promo-rotation').value;
+        try {
+            await db.collection('config').doc('store').set({ promoLimit: limit, promoRotation: rot }, { merge: true });
+            alert('Ajustes guardados correctamente.');
+        } catch(err) {
+            alert('Error al guardar ajustes.');
+            console.error(err);
+        }
     }
     
-    list.innerHTML = promos.map(p => `
-        <div class="list-item">
-            <div class="list-item-info">
-                <strong>${p.nombre} (${p.marca})</strong>
-                <span>PVP: ${formatCOP(p.precioVenta)} | <span style="color:var(--neon-green)">-${p.descuento}% OFF</span> = ${formatCOP(p.precioVenta - (p.precioVenta * p.descuento / 100))}</span>
+    if (e.target.id === 'btn-add-promo') {
+        const id = document.getElementById('bulk-promo-select').value;
+        const desc = parseInt(document.getElementById('bulk-promo-desc').value) || 0;
+        const tipo = document.getElementById('bulk-promo-tipo').value || 'percentage';
+        if (!id) return alert('Selecciona un producto');
+        try {
+            await db.collection('productos').doc(id).update({ enPromocion: true, descuento: desc, tipoPromocion: tipo });
+        } catch(err) { alert('Error: ' + err.message); }
+    }
+});
+
+function renderAdminPromos() {
+    const select = document.getElementById('bulk-promo-select');
+    if (select) {
+        const noPromos = products.filter(p => !p.enPromocion);
+        select.innerHTML = noPromos.map(p => `<option value="${p.id}">${p.nombre} (${p.marca || 'Otro'})</option>`).join('');
+    }
+
+    const list = document.getElementById('active-promos-list');
+    const empty = document.getElementById('active-promos-empty');
+    if (!list || !empty) return;
+
+    const activePromos = products.filter(p => p.enPromocion);
+    
+    if (activePromos.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+    } else {
+        empty.style.display = 'none';
+        list.innerHTML = activePromos.map(p => {
+            let pType = p.tipoPromocion || 'percentage';
+            let desc = p.descuento || 0;
+            return `
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="position:relative; width: 100%; aspect-ratio: 1/1;">
+                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" style="width:100%; height:100%; object-fit:cover;">
+                </div>
+                <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div>
+                        <span style="font-size:0.8rem; background:var(--neon-green); color:#000; padding:2px 6px; border-radius:4px; font-weight:bold;">${p.marca}</span>
+                        ${p.codigo ? `<span style="font-size:0.8rem; background:#333; color:#fff; padding:2px 6px; border-radius:4px; margin-left:5px;">${p.codigo}</span>` : ''}
+                    </div>
+                    <strong style="font-size:1.1rem; line-height:1.2;">${p.nombre}</strong>
+                    
+                    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <select class="form-input" onchange="updatePromoInline('${p.id}', 'tipoPromocion', this.value)" style="padding:0.4rem; font-size:0.9rem;">
+                            <option value="percentage" ${pType === 'percentage' ? 'selected' : ''}>% Descuento</option>
+                            <option value="2x1" ${pType === '2x1' ? 'selected' : ''}>2x1</option>
+                            <option value="freeshipping" ${pType === 'freeshipping' ? 'selected' : ''}>Envío Gratis</option>
+                            <option value="clearance" ${pType === 'clearance' ? 'selected' : ''}>Remate</option>
+                        </select>
+                        
+                        <input type="number" class="form-input" onchange="updatePromoInline('${p.id}', 'descuento', parseInt(this.value) || 0)" value="${desc}" style="padding:0.4rem; font-size:0.9rem; display:${pType === 'percentage' || pType === 'clearance' ? 'block' : 'none'};" placeholder="% Descuento">
+                        
+                        <button class="btn-primary" style="background:#ff3333; padding:0.4rem; margin-top:0.2rem;" onclick="removePromo('${p.id}')">Quitar Promo</button>
+                    </div>
+                </div>
             </div>
-            <div class="list-actions">
-                <button class="btn-action delete" onclick="removePromo('${p.id}')">Quitar Promo</button>
-            </div>
-        </div>
-    `).join('');
+            `;
+        }).join('');
+    }
 }
+
+window.updatePromoInline = async (id, field, value) => {
+    try {
+        await db.collection('productos').doc(id).update({ [field]: value });
+    } catch(e) {
+        alert('Error: ' + e.message);
+    }
+};
 
 window.removePromo = async id => {
     try { await db.collection('productos').doc(id).update({ enPromocion: false, descuento: 0 }); }
