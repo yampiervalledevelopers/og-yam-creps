@@ -277,6 +277,7 @@ function initProductForm() {
 
         const data = {
             proveedorId: $('prod-proveedor').value,
+            codigo: $('prod-ref') ? $('prod-ref').value.trim() : '',
             nombre: $('prod-nombre').value.trim(),
             marca: $('prod-marca').value,
             genero: $('prod-genero').value,
@@ -418,7 +419,7 @@ function renderAdminProducts() {
             <div style="display:flex; gap:0.8rem; align-items:center; flex:1; min-width:180px;">
                 ${mainPhoto ? `<img src="${mainPhoto}" style="width:50px;height:50px;object-fit:cover;border-radius:var(--radius-sm);" onerror="this.alt='👟';">` : `<div style="width:50px;height:50px;background:#222;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">👟</div>`}
                 <div class="list-item-info">
-                    <strong>${prod.nombre} ${isSoldOut ? '<span style="color:#ff3333;font-size:0.8em;">[AGOTADO]</span>' : ''}</strong>
+                    <strong>${prod.codigo ? `<span style="color:var(--neon-green)">[${prod.codigo}]</span> ` : ''}${prod.nombre} ${isSoldOut ? '<span style="color:#ff3333;font-size:0.8em;">[AGOTADO]</span>' : ''}</strong>
                     <span>${prod.marca} · ${provName} · PVP: ${formatCOP(prod.precioVenta)}</span>
                     <div style="margin-top:4px;" class="sizes-badge-container">${tallasHtml || '<span style="color:#999;font-size:0.75rem;">Sin tallas</span>'}</div>
                 </div>
@@ -440,6 +441,7 @@ window.editProduct = id => {
     $('btn-save-prod').textContent = 'Actualizar';
     $('btn-cancel-edit').classList.remove('hidden');
     $('prod-proveedor').value = prod.proveedorId || '';
+    if($('prod-ref')) $('prod-ref').value = prod.codigo || '';
     $('prod-nombre').value = prod.nombre || '';
     $('prod-marca').value = prod.marca || 'Nike';
     $('prod-genero').value = prod.genero || 'Unisex';
