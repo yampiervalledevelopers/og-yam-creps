@@ -785,34 +785,57 @@ function renderDashboard() {
 // ==========================================
 function renderSales() {
     const list = $('ventas-list');
+    const totalEl = $('admin-ventas-total'); // we might need to add this to HTML if missing, but let's check
     if (!list) return;
+
     if (ventas.length === 0) {
-        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">Sin ventas aún. 📊</p>';
+        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">Sin ventas aún. 👟</p>';
+        if (totalEl) totalEl.textContent = '$0';
         return;
     }
-        let html = `<table style="width:100%;border-collapse:collapse;min-width:550px;">
+
+    let html = `<table style="width:100%;border-collapse:collapse;min-width:650px;">
         <thead><tr style="text-align:left;border-bottom:1px solid var(--border-color);">
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Fecha</th>
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Tenis</th>
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Talla</th>
+            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Fecha / Foto</th>
+            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Detalle Producto & Comprador</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Origen</th>
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Proveedor</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Venta</th>
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Ganancia</th><th style="padding:0.7rem;"></th>
+            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Ganancia</th>
+            <th style="padding:0.7rem;"></th>
         </tr></thead><tbody>`;
+
+    let totalGanancia = 0;
     ventas.forEach(v => {
+        totalGanancia += (v.ganancia || 0);
         const origenBadge = v.origen === 'bodega' ? '📦 Bodega' : (v.origen === 'proveedor' ? '🚚 Prov' : '📦 Bodega');
+        const met = v.metodo === 'credito' ? '<span style="color:#ffcc00; font-size:0.7rem; border:1px solid #ffcc00; padding:2px 4px; border-radius:4px; margin-left:5px;">Crédito</span>' : '';
+        const clientHtml = (v.clienteNombre || v.clienteTelefono || v.clienteInfo) ? `<div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,255,136,0.05); border-left: 2px solid var(--neon-green); font-size: 0.85rem; border-radius: 0 4px 4px 0;">👤 <b>${v.clienteNombre || 'Sin nombre'}</b> ${v.clienteTelefono ? '📞 '+v.clienteTelefono : ''} ${v.clienteInfo ? '<br>📌 '+v.clienteInfo : ''}</div>` : '';
+        
         html += `<tr style="border-bottom:1px solid #222;">
-            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted);">${formatDate(v.fecha)}</td>
-            <td style="padding:0.7rem;font-weight:600;">${v.nombreProducto} <small style="color:var(--neon-green);">(${v.marca})</small></td>
-            <td style="padding:0.7rem;"><span class="size-badge">${v.talla}</span></td>
-            <td style="padding:0.7rem;font-size:0.85rem;color:var(--neon-green)">${origenBadge}</td>
-            <td style="padding:0.7rem;font-size:0.85rem;">${v.proveedor}</td>
-            <td style="padding:0.7rem;">${formatCOP(v.precioVenta)}</td>
-            <td style="padding:0.7rem;color:${v.ganancia >= 0 ? 'var(--neon-green)' : '#ff3333'};font-weight:bold;">${formatCOP(v.ganancia)}</td>            <td style="padding:0.7rem;text-align:center;"><button onclick="deleteVenta('${v.id}')" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Venta">❌</button></td>
+            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted); vertical-align:top;">
+                ${formatDate(v.fecha)}
+                ${v.fotoProducto ? `<br><img src="${v.fotoProducto}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; border:1px solid #333;">` : ''}
+            </td>
+            <td style="padding:0.7rem; vertical-align:top;">
+                <strong style="font-size:1rem;">${v.nombreProducto}</strong> <small style="color:var(--neon-green);">(${v.marca})</small>
+                <br><small style="color:var(--text-muted);">Talla: <span class="size-badge" style="padding:1px 4px; font-size:0.7rem;">${v.talla}</span> ${met}</small>
+                ${clientHtml}
+            </td>
+            <td style="padding:0.7rem;font-size:0.85rem; vertical-align:top;">
+                <span style="color:var(--neon-green)">${origenBadge}</span>
+                <br><small style="color:var(--text-muted);">${v.proveedor}</small>
+            </td>
+            <td style="padding:0.7rem; vertical-align:top;">${formatCOP(v.precioVenta)}</td>
+            <td style="padding:0.7rem; color:${(v.ganancia||0) >= 0 ? 'var(--neon-green)' : '#ff3333'}; font-weight:bold; vertical-align:top;">${formatCOP(v.ganancia)}</td>
+            <td style="padding:0.7rem; vertical-align:top;">
+                <button class="btn-action delete" onclick="deleteVenta('${v.id}')" style="padding:0.3rem 0.5rem;">X</button>
+            </td>
         </tr>`;
     });
-    list.innerHTML = html + '</tbody></table>';
+
+    html += '</tbody></table>';
+    list.innerHTML = html;
+    if (totalEl) totalEl.textContent = formatCOP(totalGanancia);
 }
 
 // ==========================================
