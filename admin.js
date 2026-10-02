@@ -846,14 +846,33 @@ document.addEventListener('click', async (e) => {
         }
     }
     
-    if (e.target.id === 'btn-add-promo') {
-        const id = document.getElementById('bulk-promo-select').value;
-        const desc = parseInt(document.getElementById('bulk-promo-desc').value) || 0;
-        const tipo = document.getElementById('bulk-promo-tipo').value || 'percentage';
-        if (!id) return alert('Selecciona un producto');
+    if (e.target.id === 'btn-apply-bulk-promo') {
+        const selectEl = document.getElementById('bulk-promo-select');
+        if (!selectEl) return;
+        
+        const selectedOptions = Array.from(selectEl.selectedOptions).map(opt => opt.value);
+        if (selectedOptions.length === 0) return alert('Selecciona al menos un producto');
+        
+        const desc = parseInt(document.getElementById('bulk-promo-value').value) || 0;
+        const tipo = document.getElementById('bulk-promo-type').value || 'percentage';
+        
+        const btn = e.target;
+        btn.disabled = true;
+        btn.textContent = 'Aplicando...';
+        
         try {
-            await db.collection('productos').doc(id).update({ enPromocion: true, descuento: desc, tipoPromocion: tipo });
-        } catch(err) { alert('Error: ' + err.message); }
+            const batch = db.batch();
+            selectedOptions.forEach(id => {
+                const docRef = db.collection('productos').doc(id);
+                batch.update(docRef, { enPromocion: true, descuento: desc, tipoPromocion: tipo });
+            });
+            await batch.commit();
+        } catch(err) {
+            alert('Error al aplicar: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Aplicar Promoción';
+        }
     }
 });
 
