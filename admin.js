@@ -582,16 +582,18 @@ async function confirmSale() {
     const metodo = $('sell-metodo-select')?.value || 'contado';
     if (!select?.value || !currentSoldProduct) { alert('Selecciona la talla vendida.'); return; }
     
-    let clienteNombre = '', clienteTelefono = '', cuotasCount = 1, frecuenciaDias = 15, abonoInicial = 0;
+    let cuotasCount = 1, frecuenciaDias = 15, abonoInicial = 0;
+    let clienteNombre = $('sell-cliente-nombre') ? $('sell-cliente-nombre').value.trim() : '';
+    let clienteTelefono = $('sell-cliente-telefono') ? $('sell-cliente-telefono').value.trim() : '';
+    let clienteInfo = document.getElementById('sell-cliente-info') ? document.getElementById('sell-cliente-info').value.trim() : '';
+
     if (metodo === 'credito') {
-        clienteNombre = $('sell-cliente-nombre').value.trim();
-        clienteTelefono = $('sell-cliente-telefono').value.trim();
         cuotasCount = parseInt($('sell-credito-cuotas').value) || 1;
         frecuenciaDias = parseInt($('sell-credito-frecuencia').value) || 15;
         abonoInicial = parseFloat($('sell-credito-abono').value) || 0;
         
         if (!clienteNombre || !clienteTelefono) {
-            alert('Debes ingresar el nombre y teléfono del cliente.');
+            alert('Debes ingresar el nombre y teléfono del cliente para fiar.');
             return;
         }
     }
@@ -612,7 +614,11 @@ async function confirmSale() {
 
     const prov = providers.find(p => p.id === prod.proveedorId);
     const costoTotal = (prod.costoProveedor || 0) + (prod.costoEnvio || 0);
-    const ganancia = (prod.precioVenta || 0) - costoTotal;
+    
+    const finalPriceInput = $('sell-precio-final') ? parseFloat($('sell-precio-final').value) : NaN;
+    const finalPrice = !isNaN(finalPriceInput) ? finalPriceInput : (prod.precioVenta || 0);
+    
+    const ganancia = finalPrice - costoTotal;
     const now = Date.now();
 
     try {
@@ -621,10 +627,14 @@ async function confirmSale() {
         const ventaRef = db.collection('ventas').doc();
         batch.set(ventaRef, {
             productoId: prod.id, nombreProducto: prod.nombre, marca: prod.marca,
-            talla: size, precioVenta: prod.precioVenta, costoTotal, ganancia,
+            fotoProducto: prod.foto || (prod.fotos && prod.fotos.length > 0 ? prod.fotos[0] : ''),
+            talla: size, precioVenta: finalPrice, costoTotal, ganancia,
             proveedor: prov ? prov.nombre : 'Local', 
             origen: origen,
             metodo: metodo,
+            clienteNombre: clienteNombre,
+            clienteTelefono: clienteTelefono,
+            clienteInfo: clienteInfo,
             fecha: now
         });
         
@@ -637,7 +647,7 @@ async function confirmSale() {
         });
 
         if (metodo === 'credito') {
-            const saldoRestante = prod.precioVenta - abonoInicial;
+            const saldoRestante = finalPrice - abonoInicial;
             const montoPorCuota = Math.round(saldoRestante / cuotasCount);
             
             const cuotasArray = [];
@@ -657,20 +667,19 @@ async function confirmSale() {
                 clienteTelefono,
                 productoId: prod.id,
                 nombreProducto: prod.nombre,
-                precioTotal: prod.precioVenta,
+                precioTotal: finalPrice,
                 costoTotal: costoTotal,
                 abonoInicial,
                 saldoPendiente: saldoRestante,
                 cuotas: cuotasArray,
-                fechaVenta: now,
-                estado: 'activo'
+                estado: 'activo',
+                fechaVenta: now
             });
         }
-        
-        // Generar transacciones automáticas
+
         if (metodo === 'contado') {
             batch.set(db.collection('transacciones').doc(), {
-                tipo: 'ingreso', concepto: 'Venta Contado: ' + prod.nombre, monto: Number(precioVendido), fecha: now, refId: ventaRef.id
+                tipo: 'ingreso', concepto: 'Venta Contado: ' + prod.nombre, monto: Number(finalPrice), fecha: now, refId: ventaRef.id
             });
         } else if (metodo === 'credito' && abonoInicial > 0) {
             batch.set(db.collection('transacciones').doc(), {
@@ -683,18 +692,18 @@ async function confirmSale() {
                 tipo: 'egreso', concepto: 'Costo Proveedor (Sobre pedido): ' + prod.nombre, monto: Number(costoTotal), fecha: now, refId: ventaRef.id
             });
         }
-        await batch.commit();
         
+        await batch.commit();
+
         $('sell-modal').classList.add('hidden');
         currentSoldProduct = null;
         
-        if (metodo === 'credito') {
-            $('sell-cliente-nombre').value = '';
-            $('sell-cliente-telefono').value = '';
-            $('sell-credito-abono').value = '0';
-        }
+        if ($('sell-cliente-nombre')) $('sell-cliente-nombre').value = '';
+        if ($('sell-cliente-telefono')) $('sell-cliente-telefono').value = '';
+        if (document.getElementById('sell-cliente-info')) document.getElementById('sell-cliente-info').value = '';
+        if ($('sell-credito-abono')) $('sell-credito-abono').value = '0';
         
-        alert(`¡Venta registrada (${metodo})! 🎉`);
+        alert(`¡Venta registrada (${metodo})!`);
     } catch (e) { alert("Error: " + e.message); }
 }
 
