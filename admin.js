@@ -13,6 +13,7 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+const $ = id => document.getElementById(id);
 const auth = firebase.auth();
 const db = firebase.firestore();
 db.enablePersistence().catch(() => {});
