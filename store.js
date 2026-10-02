@@ -260,13 +260,53 @@ window.changeModalImg = function(idx) {
     });
 };
 
-window.nextModalImg = function(dir) {
-    if (!currentModalPhotos || currentModalPhotos.length <= 1) return;
+window.navigateGlobal = function(dir) {
+    if (!currentModalPhotos) return;
+    
     let newIdx = currentPhotoIndex + dir;
-    if (newIdx < 0) newIdx = currentModalPhotos.length - 1;
-    if (newIdx >= currentModalPhotos.length) newIdx = 0;
-    changeModalImg(newIdx);
+    let shouldChangeProduct = false;
+    let prodDir = dir;
+
+    if (newIdx < 0 || newIdx >= currentModalPhotos.length) {
+        shouldChangeProduct = true;
+    }
+
+    if (shouldChangeProduct) {
+        if (window.currentRenderedProducts && window.currentRenderedProducts.length > 0) {
+            let currIdx = window.currentRenderedProducts.indexOf(window.currentProductId);
+            if (currIdx === -1) currIdx = 0;
+            
+            let nextIdx = currIdx + prodDir;
+            if (nextIdx < 0) nextIdx = window.currentRenderedProducts.length - 1;
+            if (nextIdx >= window.currentRenderedProducts.length) nextIdx = 0;
+            
+            let nextProdId = window.currentRenderedProducts[nextIdx];
+            
+            openProductModal(nextProdId);
+            
+            if (prodDir < 0) {
+                currentPhotoIndex = currentModalPhotos.length - 1;
+            } else {
+                currentPhotoIndex = 0;
+            }
+        } else {
+            if (newIdx < 0) currentPhotoIndex = currentModalPhotos.length - 1;
+            else currentPhotoIndex = 0;
+        }
+    } else {
+        currentPhotoIndex = newIdx;
+    }
+
+    changeModalImg(currentPhotoIndex);
+    
+    const lb = document.getElementById('lightbox');
+    if (lb && !lb.classList.contains('hidden')) {
+        resetLightboxZoom();
+        updateLightbox();
+    }
 };
+
+window.nextModalImg = function(dir) { window.navigateGlobal(dir); };
 
 window.openProductModal = id => {
     window.currentProductId = id;
@@ -284,21 +324,19 @@ window.openProductModal = id => {
     // Limpiar nav previa
     container.querySelectorAll('.modal-nav-btn, .modal-thumbs-container').forEach(el => el.remove());
 
-    // Agregar flechas si hay >1 foto
-    if (currentModalPhotos.length > 1) {
-        let leftBtn = document.createElement('button');
-        leftBtn.className = 'modal-nav-btn left-btn';
-        leftBtn.innerHTML = '&#10094;';
-        leftBtn.onclick = () => nextModalImg(-1);
+    // Agregar flechas SIEMPRE para navegar
+    let leftBtn = document.createElement('button');
+    leftBtn.className = 'modal-nav-btn left-btn';
+    leftBtn.innerHTML = '&#10094;';
+    leftBtn.onclick = () => window.navigateGlobal(-1);
 
-        let rightBtn = document.createElement('button');
-        rightBtn.className = 'modal-nav-btn right-btn';
-        rightBtn.innerHTML = '&#10095;';
-        rightBtn.onclick = () => nextModalImg(1);
+    let rightBtn = document.createElement('button');
+    rightBtn.className = 'modal-nav-btn right-btn';
+    rightBtn.innerHTML = '&#10095;';
+    rightBtn.onclick = () => window.navigateGlobal(1);
 
-        container.appendChild(leftBtn);
-        container.appendChild(rightBtn);
-    }
+    container.appendChild(leftBtn);
+    container.appendChild(rightBtn);
     
     // Inject thumbnails if multiple
     let thumbHtml = '';
