@@ -658,7 +658,7 @@ async function confirmSale() {
                 productoId: prod.id,
                 nombreProducto: prod.nombre,
                 precioTotal: prod.precioVenta,
-                costoTotal: costoCalc,
+                costoTotal: costoTotal,
                 abonoInicial,
                 saldoPendiente: saldoRestante,
                 cuotas: cuotasArray,
@@ -680,7 +680,7 @@ async function confirmSale() {
         
         if (origen === 'proveedor') {
             batch.set(db.collection('transacciones').doc(), {
-                tipo: 'egreso', concepto: 'Costo Proveedor (Sobre pedido): ' + prod.nombre, monto: Number(costoCalc), fecha: now, refId: ventaRef.id
+                tipo: 'egreso', concepto: 'Costo Proveedor (Sobre pedido): ' + prod.nombre, monto: Number(costoTotal), fecha: now, refId: ventaRef.id
             });
         }
         await batch.commit();
