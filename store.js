@@ -137,7 +137,7 @@ window.renderStore = function() {
             grid.parentNode.insertBefore(banner, grid);
         }
         
-        window.currentRenderedProducts = promos.map(p => p.id);
+        window.currentRenderedProducts = [...new Set(promos.map(p => p.id))];
         grid.innerHTML = promos.map(prod => createCardHtml(prod)).join('');
         
     } else {
@@ -169,7 +169,7 @@ window.renderStore = function() {
         </div>
         `;
         
-        window.currentRenderedProducts = [...promos.map(p => p.id), ...regular.map(p => p.id)];
+        window.currentRenderedProducts = [...new Set([...promos.map(p => p.id), ...regular.map(p => p.id)])];
         grid.style.display = 'block';
         grid.innerHTML = html;
     }
