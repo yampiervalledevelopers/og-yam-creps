@@ -1036,3 +1036,35 @@ input, select, textarea { font-family: inherit; }
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
 }
+
+/* PRICE ANIMATIONS & LABELS */
+.price-container { display: flex; flex-direction: column; gap: 0.1rem; }
+.price-old-wrap, .price-new-wrap { display: flex; align-items: center; gap: 0.4rem; }
+.price-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+.price-label.highlight { color: var(--neon-green); }
+
+.strike-anim {
+    position: relative;
+    display: inline-block;
+    color: #888;
+    text-decoration: none;
+}
+.strike-anim::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -5%;
+    width: 110%;
+    height: 2px;
+    background: #ff3333;
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: strike 0.4s ease-out forwards 0.3s;
+}
+@keyframes strike {
+    to { transform: scaleX(1); }
+}
+
+#modal-price .price-container { margin-bottom: 1rem; }
+#modal-price .price-old-wrap { margin-bottom: 0.3rem; }
+#modal-price .price-new { font-size: 1.8rem; color: var(--neon-green); }

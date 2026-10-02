@@ -32,6 +32,7 @@ function initFirestore() {
 }
 
 window.nextCardImg = function(id, dir) {
+    window.currentProductId = id;
     const prod = products.find(p => p.id === id);
     if (!prod) return;
     let fotos = prod.fotos || (prod.foto ? [prod.foto] : []);
@@ -83,8 +84,11 @@ window.nextCardImg = function(id, dir) {
             <span class="brand-tag">${prod.marca || 'Otro'}</span>
             <h3>${prod.nombre}</h3>
             <div class="price-container">
-                ${desc > 0 ? `<span class="price-old">${formatCOP(pVenta)}</span>` : ''}
-                <span class="price-new">${formatCOP(precioFinal)}</span>
+                ${desc > 0 ? `<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>` : ''}
+                <div class="price-new-wrap">
+                    ${desc > 0 ? `<span class="price-label highlight">Ahora:</span>` : ''}
+                    <span class="price-new">${formatCOP(precioFinal)}</span>
+                </div>
             </div>
             <div class="card-sizes">${sizesHtml}</div>
         </div>
@@ -133,6 +137,7 @@ window.renderStore = function() {
             grid.parentNode.insertBefore(banner, grid);
         }
         
+        window.currentRenderedProducts = promos.map(p => p.id);
         grid.innerHTML = promos.map(prod => createCardHtml(prod)).join('');
         
     } else {
@@ -164,7 +169,8 @@ window.renderStore = function() {
         </div>
         `;
         
-        grid.style.display = 'block'; // Quitar el grid base porque el html interior ya tiene su propio layout
+        window.currentRenderedProducts = [...promos.map(p => p.id), ...regular.map(p => p.id)];
+        grid.style.display = 'block';
         grid.innerHTML = html;
     }
 }
@@ -328,7 +334,10 @@ window.openProductModal = id => {
 
     $('modal-brand').textContent = prod.marca;
     $('modal-title').textContent = prod.nombre;
-    $('modal-price').innerHTML = desc > 0 ? `<span class="old-price">${formatCOP(pVenta)}</span> ${formatCOP(precioFinal)}` : formatCOP(pVenta);
+    $('modal-price').innerHTML = desc > 0 
+        ? `<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>
+           <div class="price-new-wrap"><span class="price-label highlight">Ahora:</span><span class="price-new">${formatCOP(precioFinal)}</span></div>` 
+        : `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div>`;
     $('modal-desc').textContent = [prod.color ? 'Color: ' + prod.color : '', prod.genero, 'Medellín, Colombia · Envíos a todo el país'].filter(Boolean).join(' · ');
 
     const sizesContainer = $('modal-size-selector');
@@ -376,7 +385,7 @@ function getTotalStock(prod) {
 }
 
 // ==========================================
-// LIGHTBOX FULLSCREEN LOGIC
+// LIGHTBOX FULLSCREEN LOGIC (CON ZOOM Y NAVEGACION ENTRE PRODUCTOS)
 // ==========================================
 const lightbox = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightbox-img');
@@ -385,34 +394,75 @@ const lightboxPrev = document.getElementById('lightbox-prev');
 const lightboxNext = document.getElementById('lightbox-next');
 const lightboxCounter = document.getElementById('lightbox-counter');
 
+let lbScale = 1;
+let lbPanX = 0;
+let lbPanY = 0;
+let isDragging = false;
+let startDragX = 0;
+let startDragY = 0;
+
+function resetLightboxZoom() {
+    lbScale = 1;
+    lbPanX = 0;
+    lbPanY = 0;
+    if(lightboxImg) {
+        lightboxImg.style.transform = `translate(0px, 0px) scale(1)`;
+        lightboxImg.style.transition = 'transform 0.3s ease';
+    }
+}
+
 function updateLightbox() {
     if (!currentModalPhotos || currentModalPhotos.length === 0) return;
     lightboxImg.src = currentModalPhotos[currentPhotoIndex];
     if (lightboxCounter) lightboxCounter.textContent = (currentPhotoIndex + 1) + ' / ' + currentModalPhotos.length;
     
-    if (lightboxPrev) lightboxPrev.style.display = currentModalPhotos.length > 1 ? 'block' : 'none';
-    if (lightboxNext) lightboxNext.style.display = currentModalPhotos.length > 1 ? 'block' : 'none';
+    if (lightboxPrev) lightboxPrev.style.display = 'block';
+    if (lightboxNext) lightboxNext.style.display = 'block';
 }
 
 function openLightbox() {
     if (!currentModalPhotos || currentModalPhotos.length === 0) return;
+    resetLightboxZoom();
     updateLightbox();
     if (lightbox) lightbox.classList.remove('hidden');
 }
 
 function closeLightbox() {
     if (lightbox) lightbox.classList.add('hidden');
+    resetLightboxZoom();
 }
 
 function lightboxNavigate(dir) {
     if (!currentModalPhotos) return;
     currentPhotoIndex += dir;
-    if (currentPhotoIndex < 0) currentPhotoIndex = currentModalPhotos.length - 1;
-    if (currentPhotoIndex >= currentModalPhotos.length) currentPhotoIndex = 0;
     
+    if (currentPhotoIndex < 0 || currentPhotoIndex >= currentModalPhotos.length) {
+        // Cambiar al producto anterior/siguiente
+        if (window.currentRenderedProducts && window.currentRenderedProducts.length > 0) {
+            let currIdx = window.currentRenderedProducts.indexOf(window.currentProductId);
+            if (currIdx === -1) currIdx = 0;
+            
+            let nextIdx = currIdx + (currentPhotoIndex < 0 ? -1 : 1);
+            if (nextIdx < 0) nextIdx = window.currentRenderedProducts.length - 1;
+            if (nextIdx >= window.currentRenderedProducts.length) nextIdx = 0;
+            
+            let nextProdId = window.currentRenderedProducts[nextIdx];
+            
+            openProductModal(nextProdId);
+            
+            if (dir < 0) {
+                currentPhotoIndex = currentModalPhotos.length - 1;
+                changeModalImg(currentPhotoIndex);
+            }
+        } else {
+            if (currentPhotoIndex < 0) currentPhotoIndex = currentModalPhotos.length - 1;
+            if (currentPhotoIndex >= currentModalPhotos.length) currentPhotoIndex = 0;
+        }
+    }
+    
+    resetLightboxZoom();
     updateLightbox();
     
-    // Sincronizar el modal original detrás
     const img = document.getElementById('modal-img');
     if (img) img.src = currentModalPhotos[currentPhotoIndex];
     
@@ -422,7 +472,6 @@ function lightboxNavigate(dir) {
     });
 }
 
-// Bind Lightbox Events
 if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
 if (lightboxPrev) lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); lightboxNavigate(-1); });
 if (lightboxNext) lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); lightboxNavigate(1); });
@@ -430,28 +479,102 @@ if (lightbox) lightbox.addEventListener('click', e => {
     if (e.target === lightbox || e.target === lightboxClose) closeLightbox();
 });
 
-// Bind click on modal image to open lightbox (y cancelar el zoom viejo si se hace click)
 const modalMainImg = document.getElementById('modal-img');
 if (modalMainImg) {
     modalMainImg.style.cursor = 'zoom-in';
     modalMainImg.addEventListener('click', (e) => {
-        e.stopPropagation(); // Evita que se active el zoom viejo del contenedor
+        e.stopPropagation();
         openLightbox();
     });
 }
 
-// Swipe Support para celular en el lightbox
-let touchstartX = 0;
-let touchendX = 0;
-
 if (lightboxImg) {
+    let lastTap = 0;
+    
+    lightboxImg.addEventListener('touchend', (e) => {
+        let currentTime = new Date().getTime();
+        let tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+            e.preventDefault();
+            if (lbScale > 1) resetLightboxZoom();
+            else {
+                lbScale = 2.5;
+                lightboxImg.style.transition = 'transform 0.3s ease';
+                lightboxImg.style.transform = `translate(0px, 0px) scale(${lbScale})`;
+            }
+        }
+        lastTap = currentTime;
+    });
+
+    lightboxImg.addEventListener('dblclick', () => {
+        if (lbScale > 1) resetLightboxZoom();
+        else {
+            lbScale = 2.5;
+            lightboxImg.style.transition = 'transform 0.3s ease';
+            lightboxImg.style.transform = `translate(0px, 0px) scale(${lbScale})`;
+        }
+    });
+
+    lightboxImg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        lightboxImg.style.transition = 'none';
+        lbScale += e.deltaY * -0.005;
+        lbScale = Math.min(Math.max(1, lbScale), 4);
+        if (lbScale === 1) { lbPanX = 0; lbPanY = 0; }
+        lightboxImg.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbScale})`;
+    });
+
+    let touchstartX = 0;
+    let touchstartY = 0;
+    
+    const startDrag = (x, y) => {
+        isDragging = true;
+        startDragX = x - lbPanX;
+        startDragY = y - lbPanY;
+        lightboxImg.style.transition = 'none';
+    };
+    
+    const moveDrag = (x, y) => {
+        if (!isDragging) return;
+        if (lbScale > 1) {
+            lbPanX = x - startDragX;
+            lbPanY = y - startDragY;
+            lightboxImg.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbScale})`;
+        }
+    };
+    
+    const endDrag = (x, y, isTouch) => {
+        isDragging = false;
+        if (lbScale === 1 && isTouch) {
+            let diffX = x - touchstartX;
+            let diffY = y - touchstartY;
+            if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX < 0) lightboxNavigate(1);
+                else lightboxNavigate(-1);
+            }
+        }
+    };
+
     lightboxImg.addEventListener('touchstart', e => {
         touchstartX = e.changedTouches[0].screenX;
+        touchstartY = e.changedTouches[0].screenY;
+        startDrag(e.touches[0].clientX, e.touches[0].clientY);
     }, {passive: true});
+    
+    lightboxImg.addEventListener('touchmove', e => {
+        if (lbScale > 1) e.preventDefault();
+        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
 
     lightboxImg.addEventListener('touchend', e => {
-        touchendX = e.changedTouches[0].screenX;
-        if (touchendX < touchstartX - 50) lightboxNavigate(1);
-        if (touchendX > touchstartX + 50) lightboxNavigate(-1);
-    }, {passive: true});
+        endDrag(e.changedTouches[0].screenX, e.changedTouches[0].screenY, true);
+    });
+
+    lightboxImg.addEventListener('mousedown', e => {
+        e.preventDefault();
+        startDrag(e.clientX, e.clientY);
+    });
+    
+    window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+    window.addEventListener('mouseup', e => endDrag(e.clientX, e.clientY, false));
 }
