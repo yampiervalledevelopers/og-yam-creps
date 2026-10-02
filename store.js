@@ -154,7 +154,7 @@ window.renderStore = function() {
         
         let promoIds = promos.map(p => p.id);
         let regular = available.filter(p => !promoIds.includes(p.id));
-        // removed fallback to prevent duplication
+        if (regular.length === 0) regular = available;
 
         let html = `
         <div style="margin: 2rem 0;">
