@@ -127,46 +127,9 @@ window.nextCardImg = function(id, dir) {
               <div class="card-sizes">${sizesHtml}</div>
           </div>
       </div>`;
-}
-st sizes = Object.keys(prod.tallas || {}).filter(t => prod.tallas[t] > 0);
-    const sizesHtml = sizes.map(t => `<span class="size-badge">${t}</span>`).join('');
-    
-    let desc = prod.descuento || 0;
-    let pVenta = prod.precioVenta || 0;
-    let precioFinal = pVenta - (pVenta * desc / 100);
-    let hotClass = desc >= 15 ? 'hot' : '';
-    
-    let fotosArray = prod.fotos || (prod.foto ? [prod.foto] : []);
-    let mainPhoto = fotosArray.length > 0 ? fotosArray[0] : '';
-    
-    return `
-    <div class="product-card" onclick="openProductModal('${prod.id}')">
-        <div class="card-img-wrapper" style="position:relative;">
-            ${desc > 0 ? `<div class="promo-badge ${hotClass}">-${desc}% OFF ${desc>=15?'🔥':''}</div>` : ''}
-            ${fotosArray.length > 1 ? `
-                <button class="card-nav-btn left-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', -1)">&#10094;</button>
-                <button class="card-nav-btn right-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', 1)">&#10095;</button>
-            ` : ''}
-            ${mainPhoto 
-                ? `<img id="card-img-${prod.id}" class="card-img" src="${mainPhoto}" alt="${prod.nombre}" loading="lazy">` 
-                : `<div style="height:250px; background:linear-gradient(45deg, #111, #222); display:flex; align-items:center; justify-content:center; color:#555;">Sin foto</div>`}
-        </div>
-        <div class="card-info">
-            <span class="brand-tag">${prod.marca || 'Otro'}</span>
-            <h3>${prod.nombre}</h3>
-            <div class="price-container">
-                ${desc > 0 ? `<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>` : ''}
-                <div class="price-new-wrap">
-                    ${desc > 0 ? `<span class="price-label highlight">Ahora:</span>` : ''}
-                    <span class="price-new">${formatCOP(precioFinal)}</span>
-                </div>
-            </div>
-            <div class="card-sizes">${sizesHtml}</div>
-        </div>
-    </div>`;
-}
-
-function shuffle(arr) {
+  }
+  
+  function shuffle(arr) {
     let array = [...arr];
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
