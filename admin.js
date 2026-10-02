@@ -613,7 +613,9 @@ async function confirmSale() {
     }
 
     const prov = providers.find(p => p.id === prod.proveedorId);
-    const costoTotal = (prod.costoProveedor || 0) + (prod.costoEnvio || 0);
+    const finalEnvioInput = $('sell-costo-envio') ? parseFloat($('sell-costo-envio').value) : NaN;
+    const finalEnvio = !isNaN(finalEnvioInput) ? finalEnvioInput : (prod.costoEnvio || 0);
+    const costoTotal = (prod.costoProveedor || 0) + finalEnvio;
     
     const finalPriceInput = $('sell-precio-final') ? parseFloat($('sell-precio-final').value) : NaN;
     const finalPrice = !isNaN(finalPriceInput) ? finalPriceInput : (prod.precioVenta || 0);
