@@ -268,6 +268,27 @@ function compressImage(file, maxWidth = 800, quality = 0.75) {
 // PRODUCTOS: CRUD
 // ==========================================
 function initProductForm() {
+
+    const marcaSelect = $('prod-marca');
+    if (marcaSelect) {
+        marcaSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'ADD_NEW') {
+                const newMarca = prompt('Ingresa el nombre de la nueva marca (Ej: Asics):');
+                if (newMarca && newMarca.trim() !== '') {
+                    const cleanMarca = newMarca.trim();
+                    const newOpt = document.createElement('option');
+                    newOpt.value = cleanMarca;
+                    newOpt.textContent = cleanMarca;
+                    // Insert before the last option (which is ADD_NEW)
+                    marcaSelect.insertBefore(newOpt, marcaSelect.lastElementChild);
+                    marcaSelect.value = cleanMarca;
+                } else {
+                    marcaSelect.value = 'Otro';
+                }
+            }
+        });
+    }
+
     ['prod-costo-prov', 'prod-costo-envio', 'prod-precio-venta'].forEach(id => {
         const el = $(id);
         if (el) el.addEventListener('input', calcLive);
