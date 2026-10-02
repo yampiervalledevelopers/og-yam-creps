@@ -691,6 +691,7 @@ if (lightboxImg) {
         endDrag(e.changedTouches[0].screenX, e.changedTouches[0].screenY, true);
     });
 
+    img.addEventListener('dragstart', e => e.preventDefault());
     img.addEventListener('mousedown', e => {
         e.preventDefault();
         touchstartX = e.clientX; 
@@ -703,3 +704,19 @@ if (lightboxImg) {
         if(isDragging) endDrag(e.clientX, e.clientY, false);
     });
 }
+
+// ==========================================
+// NAVEGACION POR TECLADO EN PC
+// ==========================================
+document.addEventListener('keydown', (e) => {
+    const lb = document.getElementById('lightbox');
+    if (lb && !lb.classList.contains('hidden')) {
+        if (e.key === 'ArrowRight') {
+            lightboxNavigate(1);
+        } else if (e.key === 'ArrowLeft') {
+            lightboxNavigate(-1);
+        } else if (e.key === 'Escape') {
+            closeLightbox();
+        }
+    }
+});
