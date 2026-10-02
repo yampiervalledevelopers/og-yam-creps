@@ -139,20 +139,9 @@
             <div class="admin-card">
                 <h3>Promociones Activas (Edición Rápida)</h3>
                 <div style="overflow-x: auto; margin-top: 1rem;">
-                    <table style="width:100%; border-collapse: collapse; text-align:left;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid var(--border-color); color:var(--neon-green);">
-                                <th style="padding:0.5rem;">Producto</th>
-                                <th style="padding:0.5rem;">Marca / Ref</th>
-                                <th style="padding:0.5rem;">Tipo Promo</th>
-                                <th style="padding:0.5rem;">Valor (%)</th>
-                                <th style="padding:0.5rem;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="active-promos-list">
+                    <div id="active-promos-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                             <!-- Populated via JS -->
-                        </tbody>
-                    </table>
+                        </div>
                     <div id="active-promos-empty" style="padding: 2rem; text-align:center; color:var(--text-muted); display:none;">
                         No hay productos en promoción actualmente.
                     </div>

@@ -80,10 +80,10 @@ window.updatePromoInline = async (id, field, value) => {
 
 function renderAdminPromos() {
     const select = document.getElementById('bulk-promo-select');
-    if (!select) return;
-    
-    const noPromos = products.filter(p => !p.enPromocion);
-    select.innerHTML = noPromos.map(p => `<option value="${p.id}">${p.nombre} (${p.marca || 'Otro'})</option>`).join('');
+    if (select) {
+        const noPromos = products.filter(p => !p.enPromocion);
+        select.innerHTML = noPromos.map(p => `<option value="${p.id}">${p.nombre} (${p.marca || 'Otro'})</option>`).join('');
+    }
 
     const list = document.getElementById('active-promos-list');
     const empty = document.getElementById('active-promos-empty');
@@ -96,29 +96,37 @@ function renderAdminPromos() {
         empty.style.display = 'block';
     } else {
         empty.style.display = 'none';
-        list.innerHTML = activePromos.map(p => `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <td style="padding:0.5rem; display:flex; align-items:center; gap:10px;">
-                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
-                    ${p.nombre}
-                </td>
-                <td style="padding:0.5rem;">${p.marca} <br> <small style="color:var(--text-muted);">${p.codigo || 'S/R'}</small></td>
-                <td style="padding:0.5rem;">
-                    <select class="form-input" onchange="updatePromoInline('${p.id}', 'tipoPromocion', this.value)" style="padding:0.2rem; margin:0; width:auto; min-width:110px;">
-                        <option value="percentage" ${!p.tipoPromocion || p.tipoPromocion === 'percentage' ? 'selected' : ''}>% Descuento</option>
-                        <option value="2x1" ${p.tipoPromocion === '2x1' ? 'selected' : ''}>2x1</option>
-                        <option value="freeshipping" ${p.tipoPromocion === 'freeshipping' ? 'selected' : ''}>Envío Gratis</option>
-                        <option value="clearance" ${p.tipoPromocion === 'clearance' ? 'selected' : ''}>Remate</option>
-                    </select>
-                </td>
-                <td style="padding:0.5rem;">
-                    <input type="number" class="form-input" onchange="updatePromoInline('${p.id}', 'descuento', parseInt(this.value) || 0)" value="${p.descuento || 0}" style="width:60px; padding:0.2rem; margin:0; display:${p.tipoPromocion === 'percentage' || p.tipoPromocion === 'clearance' || !p.tipoPromocion ? 'inline-block' : 'none'};">
-                </td>
-                <td style="padding:0.5rem;">
-                    <button class="btn-primary" style="background:#ff3333; padding:0.4rem;" onclick="removePromo('${p.id}')">Quitar</button>
-                </td>
-            </tr>
-        `).join('');
+        list.innerHTML = activePromos.map(p => {
+            let pType = p.tipoPromocion || 'percentage';
+            let desc = p.descuento || 0;
+            return `
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="position:relative; width: 100%; aspect-ratio: 1/1;">
+                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" style="width:100%; height:100%; object-fit:cover;">
+                </div>
+                <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div>
+                        <span style="font-size:0.8rem; background:var(--neon-green); color:#000; padding:2px 6px; border-radius:4px; font-weight:bold;">${p.marca}</span>
+                        ${p.codigo ? `<span style="font-size:0.8rem; background:#333; color:#fff; padding:2px 6px; border-radius:4px; margin-left:5px;">${p.codigo}</span>` : ''}
+                    </div>
+                    <strong style="font-size:1.1rem; line-height:1.2;">${p.nombre}</strong>
+                    
+                    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <select class="form-input" onchange="updatePromoInline('${p.id}', 'tipoPromocion', this.value)" style="padding:0.4rem; font-size:0.9rem;">
+                            <option value="percentage" ${pType === 'percentage' ? 'selected' : ''}>% Descuento</option>
+                            <option value="2x1" ${pType === '2x1' ? 'selected' : ''}>2x1</option>
+                            <option value="freeshipping" ${pType === 'freeshipping' ? 'selected' : ''}>Envío Gratis</option>
+                            <option value="clearance" ${pType === 'clearance' ? 'selected' : ''}>Remate</option>
+                        </select>
+                        
+                        <input type="number" class="form-input" onchange="updatePromoInline('${p.id}', 'descuento', parseInt(this.value) || 0)" value="${desc}" style="padding:0.4rem; font-size:0.9rem; display:${pType === 'percentage' || pType === 'clearance' ? 'block' : 'none'};" placeholder="% Descuento">
+                        
+                        <button class="btn-primary" style="background:#ff3333; padding:0.4rem; margin-top:0.2rem;" onclick="removePromo('${p.id}')">Quitar Promo</button>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
     }
 }
 
