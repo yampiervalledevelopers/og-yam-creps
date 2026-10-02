@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initModals();
 });
 
-
 let storeConfig = { promoLimit: 8, promoRotation: 'random' };
 
 // === FIRESTORE: Escuchar configuración ===
@@ -32,7 +31,7 @@ function initStoreConfig() {
         if (doc.exists) {
             storeConfig = { ...storeConfig, ...doc.data() };
         }
-        if (products.length > 0) renderStore(); // re-render if loaded
+        if (products.length > 0) renderStore();
     }, err => console.error("Error config:", err));
 }
 
@@ -74,39 +73,382 @@ window.nextCardImg = function(id, dir) {
     const sizes = Object.keys(prod.tallas || {}).filter(t => prod.tallas[t] > 0);
     const sizesHtml = sizes.map(t => `<span class="size-badge">${t}</span>`).join('');
     
+    let desc = prod.descuento || 0;
+    let pVenta = prod.precioVenta || 0;
     let isPromo = prod.enPromocion || prod.fakePromo;
     let pType = prod.tipoPromocion || 'percentage';
-    let desc = prod.descuento || (prod.fakePromo ? 15 : 0);
-    let pVenta = prod.precioVenta || 0;
-    let precioFinal = pVenta;
     
+    let precioFinal = pVenta;
+    let badgeHtml = '';
     let priceHtml = '';
-    let waMsgType = '';
 
     if (isPromo) {
         if (pType === '2x1') {
-            priceHtml = `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div><div class="promo-badge hot" style="display:inline-block; margin-top:0.5rem;">¡2x1! Lleva 2 Paga 1</div>`;
-            waMsgType = '2x1 🔥';
+            badgeHtml = `<div class="promo-badge hot">¡2x1! 🔥</div>`;
+            priceHtml = `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div>`;
         } else if (pType === 'freeshipping') {
-            priceHtml = `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div><div class="promo-badge" style="display:inline-block; margin-top:0.5rem; background:#0099ff;">Envío Gratis 🚚</div>`;
-            waMsgType = 'con Envío Gratis 🚚';
+            badgeHtml = `<div class="promo-badge" style="background:#0099ff; color:white;">Envío Gratis 🚚</div>`;
+            priceHtml = `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div>`;
         } else {
             precioFinal = pVenta - (pVenta * desc / 100);
-            let badgeTxt = pType === 'clearance' ? `REMATE -${desc}%` : `-${desc}%`;
-            priceHtml = `<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>
-             <div class="price-new-wrap"><span class="price-label highlight">Ahora:</span><span class="price-new">${formatCOP(precioFinal)}</span></div>
-             <div class="promo-badge hot" style="display:inline-block; margin-top:0.5rem;">${badgeTxt}</div>`;
-            waMsgType = `en Promo (${badgeTxt})`;
+            let hotClass = desc >= 15 ? 'hot' : '';
+            let text = pType === 'clearance' ? `REMATE -${desc}%` : `-${desc}% OFF`;
+            badgeHtml = `<div class="promo-badge ${hotClass}">${text} ${desc>=15?'🔥':''}</div>`;
+            priceHtml = `
+                <div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>
+                <div class="price-new-wrap"><span class="price-label highlight">Ahora:</span><span class="price-new">${formatCOP(precioFinal)}</span></div>
+            `;
         }
     } else {
         priceHtml = `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div>`;
     }
+    
+    let fotosArray = prod.fotos || (prod.foto ? [prod.foto] : []);
+    let mainPhoto = fotosArray.length > 0 ? fotosArray[0] : '';
+    
+    return `
+      <div class="product-card" onclick="openProductModal('${prod.id}')">
+          <div class="card-img-wrapper" style="position:relative;">
+              ${badgeHtml}
+              ${fotosArray.length > 1 ? `
+                  <button class="card-nav-btn left-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', -1)">&#10094;</button>
+                  <button class="card-nav-btn right-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', 1)">&#10095;</button>
+              ` : ''}
+              ${mainPhoto 
+                  ? `<img id="card-img-${prod.id}" class="card-img" src="${mainPhoto}" alt="${prod.nombre}" loading="lazy">` 
+                  : `<div style="height:250px; background:linear-gradient(45deg, #111, #222); display:flex; align-items:center; justify-content:center; color:#555;">Sin foto</div>`}
+          </div>
+          <div class="card-info">
+              <span class="brand-tag">${prod.marca || 'Otro'}</span>
+              <h3>${prod.nombre}</h3>
+              <div class="price-container">
+                  ${priceHtml}
+              </div>
+              <div class="card-sizes">${sizesHtml}</div>
+          </div>
+      </div>`;
+}
+st sizes = Object.keys(prod.tallas || {}).filter(t => prod.tallas[t] > 0);
+    const sizesHtml = sizes.map(t => `<span class="size-badge">${t}</span>`).join('');
+    
+    let desc = prod.descuento || 0;
+    let pVenta = prod.precioVenta || 0;
+    let precioFinal = pVenta - (pVenta * desc / 100);
+    let hotClass = desc >= 15 ? 'hot' : '';
+    
+    let fotosArray = prod.fotos || (prod.foto ? [prod.foto] : []);
+    let mainPhoto = fotosArray.length > 0 ? fotosArray[0] : '';
+    
+    return `
+    <div class="product-card" onclick="openProductModal('${prod.id}')">
+        <div class="card-img-wrapper" style="position:relative;">
+            ${desc > 0 ? `<div class="promo-badge ${hotClass}">-${desc}% OFF ${desc>=15?'🔥':''}</div>` : ''}
+            ${fotosArray.length > 1 ? `
+                <button class="card-nav-btn left-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', -1)">&#10094;</button>
+                <button class="card-nav-btn right-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', 1)">&#10095;</button>
+            ` : ''}
+            ${mainPhoto 
+                ? `<img id="card-img-${prod.id}" class="card-img" src="${mainPhoto}" alt="${prod.nombre}" loading="lazy">` 
+                : `<div style="height:250px; background:linear-gradient(45deg, #111, #222); display:flex; align-items:center; justify-content:center; color:#555;">Sin foto</div>`}
+        </div>
+        <div class="card-info">
+            <span class="brand-tag">${prod.marca || 'Otro'}</span>
+            <h3>${prod.nombre}</h3>
+            <div class="price-container">
+                ${desc > 0 ? `<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>` : ''}
+                <div class="price-new-wrap">
+                    ${desc > 0 ? `<span class="price-label highlight">Ahora:</span>` : ''}
+                    <span class="price-new">${formatCOP(precioFinal)}</span>
+                </div>
+            </div>
+            <div class="card-sizes">${sizesHtml}</div>
+        </div>
+    </div>`;
+}
+
+function shuffle(arr) {
+    let array = [...arr];
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+window.renderStore = function() {
+    const grid = $('product-grid');
+    if (!grid) return;
+
+    let available = products.filter(p => getTotalStock(p) > 0);
+
+    if (available.length === 0) {
+        let msg = window.FILTER_GENDER ? `Pronto subiremos más tenis para ${window.FILTER_GENDER}.` : "Pronto subiremos más tenis.";
+        grid.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:3rem; grid-column:1/-1; font-size:1.1rem;">${msg} ¡Escríbenos por WhatsApp y te conseguimos los que buscas! 👟</p>`;
+        return;
+    }
+
+    if (!window.FILTER_GENDER) {
+        // --- INDEX.HTML LOGIC ---
+        let availableMen = available.filter(p => p.genero === 'Hombre' || p.genero === 'Unisex');
+        let availableWomen = available.filter(p => p.genero === 'Mujer' || p.genero === 'Unisex');
+        
+        let promosMen = availableMen.filter(p => p.enPromocion);
+        if (promosMen.length < 8) promosMen = shuffle(availableMen).slice(0, 8);
+        
+        let promosWomen = availableWomen.filter(p => p.enPromocion);
+        if (promosWomen.length < 8) promosWomen = shuffle(availableWomen).slice(0, 8);
+        
+        let promos = shuffle([...promosMen, ...promosWomen]);
+        promos = promos.map(p => ({...p, fakePromo: true, descuento: p.descuento || 15}));
+        
+        if (!document.getElementById('promo-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'promo-banner';
+            banner.innerHTML = `<div class="promo-marquee-container"><div class="promo-marquee-track"><span>🔥 PROMOCIONES DEL DÍA 🔥</span><span>ENVÍO A TODA COLOMBIA 🚀</span><span>🔥 PROMOCIONES DEL DÍA 🔥</span><span>ENVÍO A TODA COLOMBIA 🚀</span><span>🔥 PROMOCIONES DEL DÍA 🔥</span><span>ENVÍO A TODA COLOMBIA 🚀</span><span>🔥 PROMOCIONES DEL DÍA 🔥</span><span>ENVÍO A TODA COLOMBIA 🚀</span></div></div>`;
+            grid.parentNode.insertBefore(banner, grid);
+        }
+        
+        window.currentRenderedProducts = [...new Set(promos.map(p => p.id))];
+        grid.innerHTML = promos.map(prod => createCardHtml(prod)).join('');
+        
+    } else {
+        // --- HOMBRES / MUJERES SUBPAGES LOGIC ---
+        available = available.filter(p => {
+            if (window.FILTER_GENDER === 'Hombre') return p.genero === 'Hombre' || p.genero === 'Unisex';
+            if (window.FILTER_GENDER === 'Mujer') return p.genero === 'Mujer' || p.genero === 'Unisex';
+            return p.genero === window.FILTER_GENDER;
+        });
+
+        let promos = available.filter(p => p.enPromocion);
+        if (promos.length < 8) promos = shuffle(available).slice(0, 8);
+        promos = promos.map(p => ({...p, fakePromo: true, descuento: p.descuento || 15}));
+        
+        let promoIds = promos.map(p => p.id);
+        let regular = available.filter(p => !promoIds.includes(p.id));
+        if (regular.length === 0) regular = available;
+
+        let html = `
+        <div style="margin: 2rem 0;">
+            <div class="promo-marquee-container" style="margin-top:0; box-shadow:none;"><div class="promo-marquee-track"><span>🔥 PROMOCIONES EXCLUSIVAS 🔥</span><span>LLEVA TU ESTILO AL SIGUIENTE NIVEL 🚀</span><span>🔥 PROMOCIONES EXCLUSIVAS 🔥</span><span>LLEVA TU ESTILO AL SIGUIENTE NIVEL 🚀</span><span>🔥 PROMOCIONES EXCLUSIVAS 🔥</span><span>LLEVA TU ESTILO AL SIGUIENTE NIVEL 🚀</span><span>🔥 PROMOCIONES EXCLUSIVAS 🔥</span><span>LLEVA TU ESTILO AL SIGUIENTE NIVEL 🚀</span></div></div>
+            <div class="horizontal-carousel">
+                ${promos.map(prod => createCardHtml(prod)).join('')}
+            </div>
+        </div>
+        <h2 style="font-family:'Bebas Neue', sans-serif; font-size:2.5rem; text-align:center; letter-spacing:2px; margin-top:4rem; margin-bottom:1rem;">NUEVA COLECCIÓN</h2>
+        <div class="product-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; width: 100%;">
+            ${regular.map(prod => createCardHtml(prod)).join('')}
+        </div>
+        `;
+        
+        window.currentRenderedProducts = [...new Set([...promos.map(p => p.id), ...regular.map(p => p.id)])];
+        grid.style.display = 'block';
+        grid.innerHTML = html;
+    }
+}
+
+
+function initModals() {
+    const resetZoom = () => {
+        const c = document.querySelector('.modal-image-container');
+        if (c) c.classList.remove('zoomed');
+    };
+    
+    $('modal-close')?.addEventListener('click', () => {
+        $('product-modal').classList.add('hidden');
+        resetZoom();
+    });
+    $('product-modal')?.addEventListener('click', e => {
+        if (e.target === $('product-modal')) {
+            $('product-modal').classList.add('hidden');
+            resetZoom();
+        }
+    });
+
+    const imgContainer = document.querySelector('.modal-image-container');
+    const img = $('modal-img');
+    if (imgContainer && img) {
+        // Desktop zoom pan
+        imgContainer.addEventListener('mousemove', e => {
+            if (!imgContainer.classList.contains('zoomed')) return;
+            const rect = imgContainer.getBoundingClientRect();
+            const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+            const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+            img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+        });
+
+        // Mobile touch pan
+        imgContainer.addEventListener('touchmove', e => {
+            if (!imgContainer.classList.contains('zoomed')) return;
+            e.preventDefault(); // Prevents page scrolling while panning
+            const touch = e.touches[0];
+            const rect = imgContainer.getBoundingClientRect();
+            const xPercent = Math.max(0, Math.min(100, ((touch.clientX - rect.left) / rect.width) * 100));
+            const yPercent = Math.max(0, Math.min(100, ((touch.clientY - rect.top) / rect.height) * 100));
+            img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+        }, { passive: false });
+
+        // Toggle zoom
+        imgContainer.addEventListener('click', e => {
+            if (e.target.closest('.modal-nav-btn') || e.target.closest('.modal-thumbs-container')) return;
+            
+            if (imgContainer.classList.contains('zoomed')) {
+                imgContainer.classList.remove('zoomed');
+                img.style.transformOrigin = 'center center';
+            } else {
+                imgContainer.classList.add('zoomed');
+                const rect = imgContainer.getBoundingClientRect();
+                const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+                const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+                img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+            }
+        });
+    }
+}
+
+window.currentModalPhotos = [];
+window.currentPhotoIndex = 0;
+
+window.changeModalImg = function(idx) {
+    if (!currentModalPhotos || currentModalPhotos.length === 0) return;
+    currentPhotoIndex = idx;
+    const img = $('modal-img');
+    const container = document.querySelector('.modal-image-container');
+    if (container) container.classList.remove('zoomed');
+    if (img) {
+        img.src = currentModalPhotos[idx];
+        img.style.transformOrigin = 'center center';
+    }
+
+    // Resaltar la miniatura activa
+    document.querySelectorAll('.modal-thumb-item').forEach((t, i) => {
+        if (i === idx) {
+            t.style.borderColor = 'var(--neon-green)';
+            t.style.opacity = '1';
+        } else {
+            t.style.borderColor = 'transparent';
+            t.style.opacity = '0.6';
+        }
+    });
+};
+
+window.navigateGlobal = function(dir) {
+    if (!currentModalPhotos) return;
+    
+    let newIdx = currentPhotoIndex + dir;
+    let shouldChangeProduct = false;
+    let prodDir = dir;
+
+    if (newIdx < 0 || newIdx >= currentModalPhotos.length) {
+        shouldChangeProduct = true;
+    }
+
+    if (shouldChangeProduct) {
+        if (window.currentRenderedProducts && window.currentRenderedProducts.length > 0) {
+            let currIdx = window.currentRenderedProducts.indexOf(window.currentProductId);
+            if (currIdx === -1) currIdx = 0;
+            
+            let nextIdx = currIdx + prodDir;
+            if (nextIdx < 0) nextIdx = window.currentRenderedProducts.length - 1;
+            if (nextIdx >= window.currentRenderedProducts.length) nextIdx = 0;
+            
+            let nextProdId = window.currentRenderedProducts[nextIdx];
+            
+            openProductModal(nextProdId);
+            
+            if (prodDir < 0) {
+                currentPhotoIndex = currentModalPhotos.length - 1;
+            } else {
+                currentPhotoIndex = 0;
+            }
+        } else {
+            if (newIdx < 0) currentPhotoIndex = currentModalPhotos.length - 1;
+            else currentPhotoIndex = 0;
+        }
+    } else {
+        currentPhotoIndex = newIdx;
+    }
+
+    changeModalImg(currentPhotoIndex);
+    
+    const lb = document.getElementById('lightbox');
+    if (lb && !lb.classList.contains('hidden')) {
+        resetLightboxZoom();
+        updateLightbox();
+    }
+};
+
+window.nextModalImg = function(dir) { window.navigateGlobal(dir); };
+
+window.openProductModal = id => {
+    window.currentProductId = id;
+    const prod = products.find(p => p.id === id);
+    if (!prod) return;
+    const modal = $('product-modal');
+
+    const img = $('modal-img');
+    currentModalPhotos = prod.fotos || (prod.foto ? [prod.foto] : []);
+    currentPhotoIndex = 0;
+    
+    let container = img.parentElement;
+    container.style.position = 'relative';
+    
+    // Limpiar nav previa
+    container.querySelectorAll('.modal-nav-btn, .modal-thumbs-container').forEach(el => el.remove());
+
+    // Agregar flechas SIEMPRE para navegar
+    let leftBtn = document.createElement('button');
+    leftBtn.className = 'modal-nav-btn left-btn';
+    leftBtn.innerHTML = '&#10094;';
+    leftBtn.onclick = () => window.navigateGlobal(-1);
+
+    let rightBtn = document.createElement('button');
+    rightBtn.className = 'modal-nav-btn right-btn';
+    rightBtn.innerHTML = '&#10095;';
+    rightBtn.onclick = () => window.navigateGlobal(1);
+
+    container.appendChild(leftBtn);
+    container.appendChild(rightBtn);
+    
+    // Inject thumbnails if multiple
+    let thumbHtml = '';
+    if (currentModalPhotos.length > 1) {
+        thumbHtml = `<div style="display:flex; gap:0.5rem; justify-content:center; padding: 0.5rem; overflow-x:auto;">` + 
+            currentModalPhotos.map((url, idx) => `<img src="${url}" class="modal-thumb-item" onclick="changeModalImg(${idx})" style="width:50px; height:50px; object-fit:cover; border-radius:4px; cursor:pointer; border:2px solid transparent; opacity:0.6; transition:0.3s;">`).join('') +
+            `</div>`;
+    }
+    
+    if (currentModalPhotos.length > 0) {
+        img.src = currentModalPhotos[0];
+        img.style.display = 'block';
+        if (thumbHtml) {
+            let div = document.createElement('div');
+            div.className = 'modal-thumbs-container';
+            div.innerHTML = thumbHtml;
+            container.appendChild(div);
+        }
+        changeModalImg(0); // init highlight
+    } else {
+        img.style.display = 'none';
+    }
+
+    let desc = prod.descuento || (prod.fakePromo ? 10 : 0);
+    // If it's a fake promo (fallback), we need to ensure the modal shows the same fake discount
+    // We didn't persist the fake promo globally, let's just re-check if we are in fake mode.
+    // Actually simpler: just calculate based on prod.descuento. The fake promo was only on the map.
+    // Let's rely on the DOM for the price if we want, or just calculate it again.
+    const isFake = !products.some(p => p.enPromocion);
+    if (isFake) desc = 10;
+    
+    let pVenta = prod.precioVenta || 0;
+    let precioFinal = pVenta - (pVenta * desc / 100);
 
     $('modal-brand').textContent = prod.marca;
     $('modal-title').textContent = prod.nombre;
-    $('modal-price').innerHTML = priceHtml;
-    
-    $('modal-desc').textContent = [prod.color ? 'Color: ' + prod.color : '', prod.genero, 'Medellín, Colombia – Envíos a todo el país'].filter(Boolean).join(' | ');
+    $('modal-price').innerHTML = desc > 0 
+        ? `<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>
+           <div class="price-new-wrap"><span class="price-label highlight">Ahora:</span><span class="price-new">${formatCOP(precioFinal)}</span></div>` 
+        : `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div>`;
+    $('modal-desc').textContent = [prod.color ? 'Color: ' + prod.color : '', prod.genero, 'Medellín, Colombia · Envíos a todo el país'].filter(Boolean).join(' · ');
 
     const sizesContainer = $('modal-size-selector');
     const available = Object.keys(prod.tallas || {}).filter(t => prod.tallas[t] > 0);

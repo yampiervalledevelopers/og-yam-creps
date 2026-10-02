@@ -1,3 +1,127 @@
+// PROMOCIONES
+// ==========================================
+let storeConfig = { promoLimit: 8, promoRotation: 'random' };
+
+async function loadPromoConfig() {
+    try {
+        const doc = await db.collection('config').doc('store').get();
+        if (doc.exists) {
+            storeConfig = { ...storeConfig, ...doc.data() };
+        }
+        const limitEl = document.getElementById('promo-limit');
+        const rotEl = document.getElementById('promo-rotation');
+        if (limitEl) limitEl.value = storeConfig.promoLimit || 8;
+        if (rotEl) rotEl.value = storeConfig.promoRotation || 'random';
+    } catch(e) { console.error("Error loading config", e); }
+}
+
+setTimeout(loadPromoConfig, 1500);
+
+document.addEventListener('click', async (e) => {
+    if (e.target.id === 'btn-save-promo-config') {
+        const limit = parseInt(document.getElementById('promo-limit').value) || 8;
+        const rot = document.getElementById('promo-rotation').value;
+        try {
+            await db.collection('config').doc('store').set({ promoLimit: limit, promoRotation: rot }, { merge: true });
+            alert('Ajustes guardados correctamente.');
+        } catch(err) {
+            alert('Error al guardar ajustes.');
+            console.error(err);
+        }
+    }
+    
+    if (e.target.id === 'btn-apply-bulk-promo') {
+        const select = document.getElementById('bulk-promo-select');
+        if (!select) return;
+        const selectedIds = Array.from(select.selectedOptions).map(opt => opt.value);
+        if (selectedIds.length === 0) return alert('Selecciona al menos un producto.');
+        
+        const type = document.getElementById('bulk-promo-type').value;
+        let val = parseInt(document.getElementById('bulk-promo-value').value) || 0;
+        if (type !== 'percentage' && type !== 'clearance') val = 0;
+
+        const btn = document.getElementById('btn-apply-bulk-promo');
+        btn.textContent = 'Aplicando...';
+        btn.disabled = true;
+
+        try {
+            const batch = db.batch();
+            selectedIds.forEach(id => {
+                const ref = db.collection('productos').doc(id);
+                batch.update(ref, { 
+                    enPromocion: true, 
+                    tipoPromocion: type,
+                    descuento: val 
+                });
+            });
+            await batch.commit();
+            alert('Promoción aplicada a ' + selectedIds.length + ' producto(s).');
+        } catch(err) {
+            alert('Error al aplicar promoción');
+            console.error(err);
+        }
+        btn.textContent = 'Aplicar Promoción';
+        btn.disabled = false;
+    }
+});
+
+window.removePromo = async (id) => {
+    if (!confirm('¿Quitar de promociones?')) return;
+    try {
+        await db.collection('productos').doc(id).update({ enPromocion: false });
+    } catch(err) { console.error(err); }
+};
+
+window.updatePromoInline = async (id, field, value) => {
+    try {
+        await db.collection('productos').doc(id).update({ [field]: value });
+    } catch (err) { console.error(err); }
+};
+
+function renderAdminPromos() {
+    const select = document.getElementById('bulk-promo-select');
+    if (!select) return;
+    
+    const noPromos = products.filter(p => !p.enPromocion);
+    select.innerHTML = noPromos.map(p => `<option value="${p.id}">${p.nombre} (${p.marca || 'Otro'})</option>`).join('');
+
+    const list = document.getElementById('active-promos-list');
+    const empty = document.getElementById('active-promos-empty');
+    if (!list || !empty) return;
+
+    const activePromos = products.filter(p => p.enPromocion);
+    
+    if (activePromos.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+    } else {
+        empty.style.display = 'none';
+        list.innerHTML = activePromos.map(p => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <td style="padding:0.5rem; display:flex; align-items:center; gap:10px;">
+                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
+                    ${p.nombre}
+                </td>
+                <td style="padding:0.5rem;">${p.marca} <br> <small style="color:var(--text-muted);">${p.codigo || 'S/R'}</small></td>
+                <td style="padding:0.5rem;">
+                    <select class="form-input" onchange="updatePromoInline('${p.id}', 'tipoPromocion', this.value)" style="padding:0.2rem; margin:0; width:auto; min-width:110px;">
+                        <option value="percentage" ${!p.tipoPromocion || p.tipoPromocion === 'percentage' ? 'selected' : ''}>% Descuento</option>
+                        <option value="2x1" ${p.tipoPromocion === '2x1' ? 'selected' : ''}>2x1</option>
+                        <option value="freeshipping" ${p.tipoPromocion === 'freeshipping' ? 'selected' : ''}>Envío Gratis</option>
+                        <option value="clearance" ${p.tipoPromocion === 'clearance' ? 'selected' : ''}>Remate</option>
+                    </select>
+                </td>
+                <td style="padding:0.5rem;">
+                    <input type="number" class="form-input" onchange="updatePromoInline('${p.id}', 'descuento', parseInt(this.value) || 0)" value="${p.descuento || 0}" style="width:60px; padding:0.2rem; margin:0; display:${p.tipoPromocion === 'percentage' || p.tipoPromocion === 'clearance' || !p.tipoPromocion ? 'inline-block' : 'none'};">
+                </td>
+                <td style="padding:0.5rem;">
+                    <button class="btn-primary" style="background:#ff3333; padding:0.4rem;" onclick="removePromo('${p.id}')">Quitar</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+}
+
 ﻿/**
  * O'G YAM CREPS — Panel de Administración (admin.js)
  * Firebase Auth + Firestore. Completamente separado de la tienda pública.
@@ -96,7 +220,6 @@ function listenData() {
         products = [];
         snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
         renderAdminProducts();
-            renderPromosAdmin();
         renderAdminPromos();
         renderDashboard();
     });
@@ -1197,144 +1320,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
-
-
-// ==========================================
-// MÓDULO DE PROMOCIONES
-// ==========================================
-
-let storeConfig = { promoLimit: 8, promoRotation: 'random' };
-
-async function loadPromoConfig() {
-    try {
-        const doc = await db.collection('config').doc('store').get();
-        if (doc.exists) {
-            storeConfig = { ...storeConfig, ...doc.data() };
-        }
-        document.getElementById('promo-limit').value = storeConfig.promoLimit || 8;
-        document.getElementById('promo-rotation').value = storeConfig.promoRotation || 'random';
-    } catch(e) { console.error("Error loading config", e); }
-}
-
-document.getElementById('btn-save-promo-config').addEventListener('click', async () => {
-    const limit = parseInt(document.getElementById('promo-limit').value) || 8;
-    const rot = document.getElementById('promo-rotation').value;
-    try {
-        await db.collection('config').doc('store').set({ promoLimit: limit, promoRotation: rot }, { merge: true });
-        alert('Ajustes guardados correctamente.');
-    } catch(e) {
-        alert('Error al guardar ajustes.');
-        console.error(e);
-    }
-});
-
-function renderPromosAdmin() {
-    // Populate bulk select (only non-promos)
-    const select = document.getElementById('bulk-promo-select');
-    const noPromos = products.filter(p => !p.enPromocion);
-    select.innerHTML = noPromos.map(p => `<option value="${p.id}">${p.nombre} (${p.marca || 'Otro'})</option>`).join('');
-
-    // Populate active promos list
-    const list = document.getElementById('active-promos-list');
-    const empty = document.getElementById('active-promos-empty');
-    const activePromos = products.filter(p => p.enPromocion);
-    
-    if (activePromos.length === 0) {
-        list.innerHTML = '';
-        empty.style.display = 'block';
-    } else {
-        empty.style.display = 'none';
-        list.innerHTML = activePromos.map(p => `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <td style="padding:0.5rem; display:flex; align-items:center; gap:10px;">
-                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
-                    ${p.nombre}
-                </td>
-                <td style="padding:0.5rem;">${p.marca} <br> <small style="color:var(--text-muted);">${p.codigo || 'S/R'}</small></td>
-                <td style="padding:0.5rem;">
-                    <select class="form-input inline-promo-type" data-id="${p.id}" style="padding:0.2rem; margin:0; width:auto; min-width:110px;">
-                        <option value="percentage" ${!p.tipoPromocion || p.tipoPromocion === 'percentage' ? 'selected' : ''}>% Descuento</option>
-                        <option value="2x1" ${p.tipoPromocion === '2x1' ? 'selected' : ''}>2x1</option>
-                        <option value="freeshipping" ${p.tipoPromocion === 'freeshipping' ? 'selected' : ''}>Envío Gratis</option>
-                        <option value="clearance" ${p.tipoPromocion === 'clearance' ? 'selected' : ''}>Remate</option>
-                    </select>
-                </td>
-                <td style="padding:0.5rem;">
-                    <input type="number" class="form-input inline-promo-val" data-id="${p.id}" value="${p.descuento || 0}" style="width:60px; padding:0.2rem; margin:0; display:${p.tipoPromocion === 'percentage' || !p.tipoPromocion ? 'inline-block' : 'none'};">
-                </td>
-                <td style="padding:0.5rem;">
-                    <button class="btn-primary" style="background:#ff3333; padding:0.4rem;" onclick="removePromo('${p.id}')">Quitar</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    // Attach inline listeners
-    document.querySelectorAll('.inline-promo-type').forEach(sel => {
-        sel.addEventListener('change', async (e) => {
-            const id = e.target.dataset.id;
-            const type = e.target.value;
-            // update UI for value input
-            const valInput = document.querySelector(`.inline-promo-val[data-id="${id}"]`);
-            if (valInput) valInput.style.display = (type === 'percentage') ? 'inline-block' : 'none';
-            // save
-            await db.collection('products').doc(id).update({ tipoPromocion: type });
-        });
-    });
-
-    document.querySelectorAll('.inline-promo-val').forEach(inp => {
-        inp.addEventListener('change', async (e) => {
-            const id = e.target.dataset.id;
-            let val = parseInt(e.target.value) || 0;
-            await db.collection('products').doc(id).update({ descuento: val });
-        });
-    });
-}
-
-document.getElementById('btn-apply-bulk-promo').addEventListener('click', async () => {
-    const select = document.getElementById('bulk-promo-select');
-    const selectedIds = Array.from(select.selectedOptions).map(opt => opt.value);
-    
-    if (selectedIds.length === 0) return alert('Selecciona al menos un producto.');
-    
-    const type = document.getElementById('bulk-promo-type').value;
-    let val = parseInt(document.getElementById('bulk-promo-value').value) || 0;
-    if (type !== 'percentage') val = 0;
-
-    const btn = document.getElementById('btn-apply-bulk-promo');
-    btn.textContent = 'Aplicando...';
-    btn.disabled = true;
-
-    try {
-        const batch = db.batch();
-        selectedIds.forEach(id => {
-            const ref = db.collection('products').doc(id);
-            batch.update(ref, { 
-                enPromocion: true, 
-                tipoPromocion: type,
-                descuento: val 
-            });
-        });
-        await batch.commit();
-        // Since we have realtime listener on products, it should update automatically.
-        alert('Promoción aplicada.');
-    } catch(e) {
-        alert('Error al aplicar promoción');
-        console.error(e);
-    }
-    btn.textContent = 'Aplicar Promoción';
-    btn.disabled = false;
-});
-
-window.removePromo = async (id) => {
-    if (!confirm('¿Quitar de promociones?')) return;
-    try {
-        await db.collection('products').doc(id).update({ enPromocion: false });
-    } catch(e) { console.error(e); }
-};
-
-// Initial calls hook
-setTimeout(() => {
-    loadPromoConfig();
-}, 2000); // give time for firebase to init
