@@ -1,62 +1,56 @@
-﻿const fs = require('fs');
-let storeJs = fs.readFileSync('store.js', 'utf8');
+﻿import os
 
-// 1. Reemplazar precio en tarjeta (createCardHtml)
-let oldPriceCard = '<div class="price-container">\n                ${desc > 0 ? `<span class="price-old">${formatCOP(pVenta)}</span>` : \'\'}\n                <span class="price-new">${formatCOP(precioFinal)}</span>\n            </div>';
-let newPriceCard = `<div class="price-container">
-                \${desc > 0 ? \`<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">\${formatCOP(pVenta)}</span></div>\` : ''}
+with open('store.js', 'r', encoding='utf-8') as f:
+    store = f.read()
+
+# 1. Update Card Price HTML
+old_price = """<div class="price-container">
+                ${desc > 0 ? `<span class="price-old">${formatCOP(pVenta)}</span>` : ''}
+                <span class="price-new">${formatCOP(precioFinal)}</span>
+            </div>"""
+
+new_price = """<div class="price-container">
+                ${desc > 0 ? `<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>` : ''}
                 <div class="price-new-wrap">
-                    \${desc > 0 ? \`<span class="price-label highlight">Ahora:</span>\` : ''}
-                    <span class="price-new">\${formatCOP(precioFinal)}</span>
+                    ${desc > 0 ? `<span class="price-label highlight">Ahora:</span>` : ''}
+                    <span class="price-new">${formatCOP(precioFinal)}</span>
                 </div>
-            </div>`;
-if(storeJs.includes(oldPriceCard)) {
-    storeJs = storeJs.replace(oldPriceCard, newPriceCard);
-    console.log("Card price replaced!");
-} else { console.log("Card price NOT found."); }
+            </div>"""
 
-// 2. Reemplazar precio en modal (openProductModal)
-let oldModalPrice = "$('modal-price').innerHTML = desc > 0 ? `<span class=\"old-price\">${formatCOP(pVenta)}</span> ${formatCOP(precioFinal)}` : formatCOP(pVenta);";
-let newModalPrice = `$('modal-price').innerHTML = desc > 0 
-        ? \`<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">\${formatCOP(pVenta)}</span></div>
-           <div class="price-new-wrap"><span class="price-label highlight">Ahora:</span><span class="price-new">\${formatCOP(precioFinal)}</span></div>\` 
-        : \`<div class="price-new-wrap"><span class="price-new">\${formatCOP(pVenta)}</span></div>\`;`;
-if(storeJs.includes(oldModalPrice)) {
-    storeJs = storeJs.replace(oldModalPrice, newModalPrice);
-    console.log("Modal price replaced!");
-} else { console.log("Modal price NOT found."); }
+store = store.replace(old_price, new_price)
 
-// 3. Current Rendered Products - Index
-let oldGridIndex = "grid.innerHTML = promos.map(prod => createCardHtml(prod)).join('');";
-let newGridIndex = "window.currentRenderedProducts = promos.map(p => p.id);\n        grid.innerHTML = promos.map(prod => createCardHtml(prod)).join('');";
-if(storeJs.includes(oldGridIndex)) {
-    storeJs = storeJs.replace(oldGridIndex, newGridIndex);
-    console.log("Grid index replaced!");
-}
+# 2. Update Modal Price
+old_modal_price = "$('modal-price').innerHTML = desc > 0 ? `<span class=\"old-price\">${formatCOP(pVenta)}</span> ${formatCOP(precioFinal)}` : formatCOP(pVenta);"
 
-// 4. Current Rendered Products - Subpages
-let oldGridSub = "grid.style.display = 'block'; // Quitar el grid base porque el html interior ya tiene su propio layout\n        grid.innerHTML = html;";
-let newGridSub = "window.currentRenderedProducts = [...promos.map(p => p.id), ...regular.map(p => p.id)];\n        grid.style.display = 'block';\n        grid.innerHTML = html;";
-if(storeJs.includes(oldGridSub)) {
-    storeJs = storeJs.replace(oldGridSub, newGridSub);
-    console.log("Grid subpage replaced!");
-}
+new_modal_price = """$('modal-price').innerHTML = desc > 0 
+        ? `<div class="price-old-wrap"><span class="price-label">Antes:</span><span class="price-old strike-anim">${formatCOP(pVenta)}</span></div>
+           <div class="price-new-wrap"><span class="price-label highlight">Ahora:</span><span class="price-new">${formatCOP(precioFinal)}</span></div>` 
+        : `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div>`;"""
 
-// 5. Current Product ID Modal
-let oldProdFind = "const prod = products.find(p => p.id === id);";
-let newProdFind = "window.currentProductId = id;\n    const prod = products.find(p => p.id === id);";
-if(storeJs.includes(oldProdFind)) {
-    storeJs = storeJs.replace(oldProdFind, newProdFind);
-    console.log("Prod find replaced!");
-}
+store = store.replace(old_modal_price, new_modal_price)
 
-// 6. Rewrite Lightbox logic
-const lbStartIdx = storeJs.indexOf('// ==========================================\n// LIGHTBOX FULLSCREEN LOGIC');
-if (lbStartIdx !== -1) {
-    storeJs = storeJs.substring(0, lbStartIdx);
-}
+# 3. Track Rendered Products Index
+store = store.replace("grid.innerHTML = promos.map(prod => createCardHtml(prod)).join('');",
+    "window.currentRenderedProducts = promos.map(p => p.id);\n        grid.innerHTML = promos.map(prod => createCardHtml(prod)).join('');")
 
-const lbLogic = `// ==========================================
+# 4. Track Rendered Products Subpages
+old_subpage = """grid.style.display = 'block'; // Quitar el grid base porque el html interior ya tiene su propio layout
+        grid.innerHTML = html;"""
+new_subpage = """window.currentRenderedProducts = [...promos.map(p => p.id), ...regular.map(p => p.id)];
+        grid.style.display = 'block';
+        grid.innerHTML = html;"""
+store = store.replace(old_subpage, new_subpage)
+
+# 5. Track current product ID in modal
+store = store.replace("const prod = products.find(p => p.id === id);",
+    "window.currentProductId = id;\n    const prod = products.find(p => p.id === id);")
+
+# 6. Lightbox logic replace
+lb_idx = store.find('// ==========================================\n// LIGHTBOX FULLSCREEN LOGIC')
+if lb_idx != -1:
+    store = store[:lb_idx]
+
+lb_logic = """// ==========================================
 // LIGHTBOX FULLSCREEN LOGIC (CON ZOOM Y NAVEGACION ENTRE PRODUCTOS)
 // ==========================================
 const lightbox = document.getElementById('lightbox');
@@ -78,7 +72,7 @@ function resetLightboxZoom() {
     lbPanX = 0;
     lbPanY = 0;
     if(lightboxImg) {
-        lightboxImg.style.transform = \`translate(0px, 0px) scale(1)\`;
+        lightboxImg.style.transform = `translate(0px, 0px) scale(1)`;
         lightboxImg.style.transition = 'transform 0.3s ease';
     }
 }
@@ -88,6 +82,7 @@ function updateLightbox() {
     lightboxImg.src = currentModalPhotos[currentPhotoIndex];
     if (lightboxCounter) lightboxCounter.textContent = (currentPhotoIndex + 1) + ' / ' + currentModalPhotos.length;
     
+    // Siempre mostramos flechas para navegar entre productos
     if (lightboxPrev) lightboxPrev.style.display = 'block';
     if (lightboxNext) lightboxNext.style.display = 'block';
 }
@@ -120,13 +115,16 @@ function lightboxNavigate(dir) {
             
             let nextProdId = window.currentRenderedProducts[nextIdx];
             
+            // Cargar el nuevo producto completo en el modal que está por debajo
             openProductModal(nextProdId);
             
+            // Si íbamos hacia atrás, mostrar la última foto de ese nuevo producto
             if (dir < 0) {
                 currentPhotoIndex = currentModalPhotos.length - 1;
                 changeModalImg(currentPhotoIndex);
             }
         } else {
+            // Fallback: Si no hay lista de productos, solo ciclar las fotos del mismo
             if (currentPhotoIndex < 0) currentPhotoIndex = currentModalPhotos.length - 1;
             if (currentPhotoIndex >= currentModalPhotos.length) currentPhotoIndex = 0;
         }
@@ -135,15 +133,18 @@ function lightboxNavigate(dir) {
     resetLightboxZoom();
     updateLightbox();
     
+    // Sincronizar imagen en el modal que está debajo
     const img = document.getElementById('modal-img');
     if (img) img.src = currentModalPhotos[currentPhotoIndex];
     
+    // Seleccionar miniatura
     document.querySelectorAll('.modal-thumb-item').forEach((el, i) => {
         el.style.border = i === currentPhotoIndex ? '2px solid var(--neon-green)' : '2px solid transparent';
         el.style.opacity = i === currentPhotoIndex ? '1' : '0.6';
     });
 }
 
+// Bind Lightbox Events
 if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
 if (lightboxPrev) lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); lightboxNavigate(-1); });
 if (lightboxNext) lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); lightboxNavigate(1); });
@@ -160,9 +161,11 @@ if (modalMainImg) {
     });
 }
 
+// GESTOS DE ZOOM Y SWIPE (Mouse y Touch)
 if (lightboxImg) {
     let lastTap = 0;
     
+    // Doble tap (Celulares)
     lightboxImg.addEventListener('touchend', (e) => {
         let currentTime = new Date().getTime();
         let tapLength = currentTime - lastTap;
@@ -172,30 +175,33 @@ if (lightboxImg) {
             else {
                 lbScale = 2.5;
                 lightboxImg.style.transition = 'transform 0.3s ease';
-                lightboxImg.style.transform = \`translate(0px, 0px) scale(\${lbScale})\`;
+                lightboxImg.style.transform = `translate(0px, 0px) scale(${lbScale})`;
             }
         }
         lastTap = currentTime;
     });
 
+    // Doble Click (PC)
     lightboxImg.addEventListener('dblclick', () => {
         if (lbScale > 1) resetLightboxZoom();
         else {
             lbScale = 2.5;
             lightboxImg.style.transition = 'transform 0.3s ease';
-            lightboxImg.style.transform = \`translate(0px, 0px) scale(\${lbScale})\`;
+            lightboxImg.style.transform = `translate(0px, 0px) scale(${lbScale})`;
         }
     });
 
+    // Rueda del ratón (PC)
     lightboxImg.addEventListener('wheel', (e) => {
         e.preventDefault();
         lightboxImg.style.transition = 'none';
         lbScale += e.deltaY * -0.005;
         lbScale = Math.min(Math.max(1, lbScale), 4);
         if (lbScale === 1) { lbPanX = 0; lbPanY = 0; }
-        lightboxImg.style.transform = \`translate(\${lbPanX}px, \${lbPanY}px) scale(\${lbScale})\`;
+        lightboxImg.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbScale})`;
     });
 
+    // Drag / Swipe
     let touchstartX = 0;
     let touchstartY = 0;
     
@@ -211,7 +217,7 @@ if (lightboxImg) {
         if (lbScale > 1) {
             lbPanX = x - startDragX;
             lbPanY = y - startDragY;
-            lightboxImg.style.transform = \`translate(\${lbPanX}px, \${lbPanY}px) scale(\${lbScale})\`;
+            lightboxImg.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbScale})`;
         }
     };
     
@@ -220,12 +226,15 @@ if (lightboxImg) {
         if (lbScale === 1 && isTouch) {
             let diffX = x - touchstartX;
             let diffY = y - touchstartY;
-            if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX < 0) lightboxNavigate(1);
-                else lightboxNavigate(-1);
+            // Si el movimiento es horizontal y mayor a 50px
+            if (abs(diffX) > 50 && abs(diffX) > abs(diffY)) {
+                if (diffX < 0) lightboxNavigate(1); // Swipe Izquierda = Siguiente
+                else lightboxNavigate(-1); // Swipe Derecha = Anterior
             }
         }
     };
+
+    function abs(val) { return val < 0 ? -val : val; }
 
     lightboxImg.addEventListener('touchstart', e => {
         touchstartX = e.changedTouches[0].screenX;
@@ -234,7 +243,7 @@ if (lightboxImg) {
     }, {passive: true});
     
     lightboxImg.addEventListener('touchmove', e => {
-        if (lbScale > 1) e.preventDefault();
+        if (lbScale > 1) e.preventDefault(); // Previene el scroll del navegador al hacer panning
         moveDrag(e.touches[0].clientX, e.touches[0].clientY);
     }, {passive: false});
 
@@ -250,48 +259,10 @@ if (lightboxImg) {
     window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
     window.addEventListener('mouseup', e => endDrag(e.clientX, e.clientY, false));
 }
-`;
+"""
 
-storeJs += lbLogic;
-fs.writeFileSync('store.js', storeJs);
-console.log('Lightbox logic appended');
-
-// Patch CSS
-let stylesCss = fs.readFileSync('styles.css', 'utf8');
-if (!stylesCss.includes('.price-label')) {
-    stylesCss += `
-/* PRICE ANIMATIONS & LABELS */
-.price-container { display: flex; flex-direction: column; gap: 0.1rem; }
-.price-old-wrap, .price-new-wrap { display: flex; align-items: center; gap: 0.4rem; }
-.price-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-.price-label.highlight { color: var(--neon-green); }
-
-.strike-anim {
-    position: relative;
-    display: inline-block;
-    color: #888;
-    text-decoration: none;
-}
-.strike-anim::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: -5%;
-    width: 110%;
-    height: 2px;
-    background: #ff3333;
-    transform: scaleX(0);
-    transform-origin: left;
-    animation: strike 0.4s ease-out forwards 0.3s;
-}
-@keyframes strike {
-    to { transform: scaleX(1); }
-}
-
-#modal-price .price-container { margin-bottom: 1rem; }
-#modal-price .price-old-wrap { margin-bottom: 0.3rem; }
-#modal-price .price-new { font-size: 1.8rem; color: var(--neon-green); }
-`;
-    fs.writeFileSync('styles.css', stylesCss);
-    console.log('styles.css patched');
-}
+store += lb_logic
+with open('store.js', 'w', encoding='utf-8') as f:
+    f.write(store)
+    
+print("store.js modified successfully with Python")
