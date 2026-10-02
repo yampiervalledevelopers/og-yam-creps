@@ -778,3 +778,28 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+function getSizeEquivalence(talla, genero) {
+    talla = parseInt(talla);
+    if (!talla) return '';
+    if (genero === 'Mujer') {
+        switch(talla) {
+            case 35: return "US 5.0 | EUR 36 | 22.0 cm";
+            case 36: return "US 6.0 | EUR 37 | 23.0 cm";
+            case 37: return "US 7.0 | EUR 38 | 24.0 cm";
+            case 38: return "US 8.0 | EUR 39 | 25.0 cm";
+            case 39: return "US 9.0 | EUR 40 | 26.0 cm";
+            default: return "";
+        }
+    } else {
+        switch(talla) {
+            case 38: return "US 7.0 | EUR 40 | 25.0 cm";
+            case 39: return "US 8.0 | EUR 41 | 26.0 cm";
+            case 40: return "US 8.5 | EUR 42 | 26.5 cm";
+            case 41: return "US 9.5 | EUR 43 | 27.5 cm";
+            case 42: return "US 10.0 | EUR 44 | 28.0 cm";
+            case 43: return "US 10.5 | EUR 45 | 28.5 cm";
+            default: return "";
+        }
+    }
+}
