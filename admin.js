@@ -766,34 +766,19 @@ function populateProviderDropdown() {
 // KPIs
 // ==========================================
 function renderDashboard() {
-    let invertidoBodega = 0, ventaBodega = 0, stockBodegaTotal = 0, stockProvTotal = 0;
+    let invertidoBodega = 0, ventaBodega = 0, stockBodegaTotal = 0;
     const provStats = {};
 
     products.forEach(p => {
         const stockBodega = Object.values(p.tallasBodega || {}).reduce((s, c) => s + c, 0);
-        // Retro-compat: if missing both, treat 'tallas' as Proveedor
-        const retroStock = (!p.tallasBodega && !p.tallasProveedor) ? getTotalStock(p) : 0;
-        const stockProv = Object.values(p.tallasProveedor || {}).reduce((s, c) => s + c, 0) + retroStock;
         
         stockBodegaTotal += stockBodega;
-        stockProvTotal += stockProv;
 
         if (stockBodega > 0) {
             const inv = ((p.costoProveedor || 0) + (p.costoEnvio || 0)) * stockBodega;
             const ven = (p.precioVenta || 0) * stockBodega;
             invertidoBodega += inv; 
             ventaBodega += ven;
-        }
-
-        const totalPares = stockBodega + stockProv;
-        if (totalPares > 0) {
-            const pid = p.proveedorId || 'x';
-            if (!provStats[pid]) provStats[pid] = { invertido: 0, venta: 0, pares: 0 };
-            const invTotal = ((p.costoProveedor || 0) + (p.costoEnvio || 0)) * totalPares;
-            const venTotal = (p.precioVenta || 0) * totalPares;
-            provStats[pid].invertido += invTotal; 
-            provStats[pid].venta += venTotal; 
-            provStats[pid].pares += totalPares;
         }
     });
 
@@ -811,6 +796,12 @@ function renderDashboard() {
         } else {
             gananciaReal += (v.ganancia || 0);
         }
+
+        const pid = v.proveedor || 'Sin asignar';
+        if (!provStats[pid]) provStats[pid] = { pares: 0, invertido: 0, ganancia: 0 };
+        provStats[pid].pares += 1;
+        provStats[pid].invertido += (v.costoTotal || 0);
+        provStats[pid].ganancia += (v.ganancia || 0);
     });
 
     const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
@@ -820,17 +811,15 @@ function renderDashboard() {
     set('kpi-ganancia-realizada', formatCOP(gananciaReal));
     set('kpi-ganancia-flotante', formatCOP(gananciaFlotante));
     set('kpi-stock-bodega', stockBodegaTotal);
-    set('kpi-stock-prov', stockProvTotal);
     set('kpi-ventas-total', formatCOP(gananciaReal));
 
     const bd = $('kpi-proveedores-breakdown');
     if (bd) {
         const keys = Object.keys(provStats);
-        bd.innerHTML = keys.length === 0 ? '<p style="color:var(--text-muted);">Sin inventario.</p>'
+        bd.innerHTML = keys.length === 0 ? '<p style="color:var(--text-muted);">Sin ventas registradas.</p>'
             : keys.map(pid => {
-                const prov = providers.find(p => p.id === pid);
                 const s = provStats[pid];
-                return `<p><strong>${prov ? prov.nombre : 'Sin asignar'}:</strong> ${s.pares} pares · Inv. ${formatCOP(s.invertido)} · Venta ${formatCOP(s.venta)}</p>`;
+                return `<p><strong>${pid}:</strong> ${s.pares} pares • Invirtió ${formatCOP(s.invertido)} • Ganó ${formatCOP(s.ganancia)}</p>`;
             }).join('');
     }
 }
