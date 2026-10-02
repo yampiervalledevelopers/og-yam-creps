@@ -93,11 +93,34 @@ function initAuth() {
 // ==========================================
 // FIRESTORE: Escuchar datos en tiempo real
 // ==========================================
+
+window.updateMarcaDropdown = function() {
+    const marcaSelect = $('prod-marca');
+    if (!marcaSelect) return;
+    
+    const defaultMarcas = ["Nike", "Jordan", "Adidas", "New Balance", "Puma", "Reebok", "Converse", "Vans", "Otro"];
+    const allMarcas = new Set(defaultMarcas);
+    
+    products.forEach(p => {
+        if (p.marca && p.marca.trim() !== '') {
+            allMarcas.add(p.marca.trim());
+        }
+    });
+    
+    const currentVal = marcaSelect.value;
+    marcaSelect.innerHTML = Array.from(allMarcas).map(m => `<option value="${m}">${m}</option>`).join('') + '<option value="ADD_NEW" style="font-weight:bold; color:var(--neon-green);">+ Nueva Marca...</option>';
+    
+    if (Array.from(allMarcas).includes(currentVal) || currentVal === 'ADD_NEW') {
+        marcaSelect.value = currentVal;
+    }
+};
+
 function listenData() {
     db.collection('productos').onSnapshot(snap => {
         products = [];
         snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
         renderAdminProducts();
+        updateMarcaDropdown();
         renderAdminPromos();
         renderDashboard();
     });
