@@ -266,7 +266,8 @@ input, select, textarea { font-family: inherit; }
 }
 
 .card-img-wrapper {
-    height: 180px;
+    aspect-ratio: 1/1;
+    height: auto;
     background: #111;
     overflow: hidden;
     display: flex;
@@ -880,11 +881,13 @@ input, select, textarea { font-family: inherit; }
     .filters-container { flex-direction: column; gap: 0.6rem; }
     .filter-input, .filter-select { width: 100%; min-width: auto; }
     
+    /* Forzamos 2 columnas organizadas */
     .product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 0.8rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem; /* Gap más compacto para que las fotos resalten más */
     }
-    .card-img-wrapper, .card-img { height: 160px !important; }
+    .card-img-wrapper { height: auto !important; aspect-ratio: 1/1; }
+    .card-img { height: 100% !important; width: 100% !important; object-fit: cover; }
     .card-nav-btn { opacity: 1; background: rgba(0, 0, 0, 0.6); }
     .card-content { padding: 0.8rem; }
     .card-title { font-size: 0.95rem; margin-bottom: 0.3rem; line-height: 1.2; }
