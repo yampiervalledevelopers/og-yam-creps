@@ -392,32 +392,41 @@
                 <label>¿Qué talla se vendió?</label>
                 <select id="sell-size-select" style="margin-top:0.5rem; width:100%; padding:0.8rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);"></select>
             </div>
-            <div class="form-group" style="margin-top:1rem;">
-                <label>Método de Pago</label>
-                <select id="sell-metodo-select" style="margin-top:0.5rem; width:100%; padding:0.8rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);">
-                    <option value="contado">💰 Contado</option>
-                    <option value="credito">💳 Crédito / Cuotas</option>
-                </select>
-            </div>
-            
-            <div id="sell-credito-fields" class="hidden" style="margin-top:1rem; padding:1rem; background:#1a1a1a; border-radius:var(--radius-sm); border:1px solid #333;">
-                <h4 style="margin-bottom:0.5rem; color:var(--neon-green);">Datos del Crédito</h4>
-                <div class="form-group" style="margin-bottom:0.8rem;">
-                    <label>Nombre del Cliente</label>
-                    <input type="text" id="sell-cliente-nombre" placeholder="Ej: Juan Pérez" list="dl-clientes-nombres" style="width:100%; padding:0.6rem;" autocomplete="off">
-                </div>
-                <div class="form-group" style="margin-bottom:0.8rem;">
-                    <label>Teléfono / WhatsApp</label>
-                    <input type="number" id="sell-cliente-telefono" placeholder="3000000000" list="dl-clientes-telefonos" style="width:100%; padding:0.6rem;" autocomplete="off">
-                </div>
-                <div class="form-group" style="margin-bottom:0.8rem;">
-                    <label>Abono Inicial ($)</label>
-                    <input type="number" id="sell-credito-abono" placeholder="0" value="0" style="width:100%; padding:0.6rem;">
-                </div>
-                <div style="display:flex; gap:0.5rem;">
-                    <div class="form-group" style="flex:1;">
-                        <label>Cuotas</label>
-                        <select id="sell-credito-cuotas" style="width:100%; padding:0.6rem;">
+            <div class="form-group" style="margin-top:1rem; padding:1rem; background:#1a1a1a; border-radius:var(--radius-sm); border:1px solid #333;">
+                  <h4 style="margin-bottom:0.8rem; color:var(--neon-green);">Datos del Comprador (Opcional)</h4>
+                  <div class="form-group" style="margin-bottom:0.8rem;">
+                      <label>Nombre del Cliente</label>
+                      <input type="text" id="sell-cliente-nombre" placeholder="Ej: Juan Pérez" list="dl-clientes-nombres" style="width:100%; padding:0.6rem;" autocomplete="off">
+                  </div>
+                  <div class="form-group" style="margin-bottom:0.8rem;">
+                      <label>Teléfono / WhatsApp</label>
+                      <input type="number" id="sell-cliente-telefono" placeholder="3000000000" list="dl-clientes-telefonos" style="width:100%; padding:0.6rem;" autocomplete="off">
+                  </div>
+                  <div class="form-group" style="margin-bottom:0.8rem;">
+                      <label>Notas / Dirección (Opcional)</label>
+                      <input type="text" id="sell-cliente-info" placeholder="Dirección, detalles de entrega..." style="width:100%; padding:0.6rem;" autocomplete="off">
+                  </div>
+              </div>
+  
+              <div class="form-group" style="margin-top:1rem;">
+                  <label>Método de Pago</label>
+                  <select id="sell-metodo-select" style="margin-top:0.5rem; width:100%; padding:0.8rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);">
+                      <option value="contado">💰 Contado</option>
+                      <option value="credito">💳 Crédito / Cuotas</option>
+                  </select>
+              </div>
+              
+              <div id="sell-credito-fields" class="hidden" style="margin-top:1rem; padding:1rem; background:#1a1a1a; border-radius:var(--radius-sm); border:1px solid #333;">
+                  <h4 style="margin-bottom:0.5rem; color:var(--neon-green);">Datos del Crédito</h4>
+                  
+                  <div class="form-group" style="margin-bottom:0.8rem;">
+                      <label>Abono Inicial ($)</label>
+                      <input type="number" id="sell-credito-abono" placeholder="0" value="0" style="width:100%; padding:0.6rem;">
+                  </div>
+                  <div style="display:flex; gap:0.5rem;">
+                      <div class="form-group" style="flex:1;">
+                          <label>Cuotas</label>
+                          <select id="sell-credito-cuotas" style="width:100%; padding:0.6rem;">
                             <option value="1">1 cuota</option>
                             <option value="2">2 cuotas</option>
                             <option value="3">3 cuotas</option>

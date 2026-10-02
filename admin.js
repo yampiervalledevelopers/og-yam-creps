@@ -536,16 +536,18 @@ async function confirmSale() {
     const metodo = $('sell-metodo-select')?.value || 'contado';
     if (!select?.value || !currentSoldProduct) { alert('Selecciona la talla vendida.'); return; }
     
-    let clienteNombre = '', clienteTelefono = '', cuotasCount = 1, frecuenciaDias = 15, abonoInicial = 0;
+    let cuotasCount = 1, frecuenciaDias = 15, abonoInicial = 0;
+    let clienteNombre = $('sell-cliente-nombre').value.trim();
+    let clienteTelefono = $('sell-cliente-telefono').value.trim();
+    let clienteInfo = document.getElementById('sell-cliente-info') ? document.getElementById('sell-cliente-info').value.trim() : '';
+
     if (metodo === 'credito') {
-        clienteNombre = $('sell-cliente-nombre').value.trim();
-        clienteTelefono = $('sell-cliente-telefono').value.trim();
         cuotasCount = parseInt($('sell-credito-cuotas').value) || 1;
         frecuenciaDias = parseInt($('sell-credito-frecuencia').value) || 15;
         abonoInicial = parseFloat($('sell-credito-abono').value) || 0;
         
         if (!clienteNombre || !clienteTelefono) {
-            alert('Debes ingresar el nombre y teléfono del cliente.');
+            alert('Debes ingresar el nombre y teléfono del cliente para fiar.');
             return;
         }
     }
@@ -575,10 +577,14 @@ async function confirmSale() {
         const ventaRef = db.collection('ventas').doc();
         batch.set(ventaRef, {
             productoId: prod.id, nombreProducto: prod.nombre, marca: prod.marca,
+            fotoProducto: prod.foto || (prod.fotos && prod.fotos.length > 0 ? prod.fotos[0] : ''),
             talla: size, precioVenta: prod.precioVenta, costoTotal, ganancia,
             proveedor: prov ? prov.nombre : 'Local', 
             origen: origen,
             metodo: metodo,
+            clienteNombre: clienteNombre,
+            clienteTelefono: clienteTelefono,
+            clienteInfo: clienteInfo,
             fecha: now
         });
         
@@ -645,6 +651,7 @@ async function confirmSale() {
         if (metodo === 'credito') {
             $('sell-cliente-nombre').value = '';
             $('sell-cliente-telefono').value = '';
+            if (document.getElementById('sell-cliente-info')) document.getElementById('sell-cliente-info').value = '';
             $('sell-credito-abono').value = '0';
         }
         
@@ -785,474 +792,48 @@ function renderSales() {
     const list = $('ventas-list');
     if (!list) return;
     if (ventas.length === 0) {
-        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">Sin ventas aún. 📊</p>';
+        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">Sin ventas aún. 👟</p>';
         return;
     }
-        let html = `<table style="width:100%;border-collapse:collapse;min-width:550px;">
+    
+    let html = `<table style="width:100%;border-collapse:collapse;min-width:650px;">
         <thead><tr style="text-align:left;border-bottom:1px solid var(--border-color);">
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Fecha</th>
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Tenis</th>
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Talla</th>
+            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Fecha / Foto</th>
+            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Detalle Producto & Comprador</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Origen</th>
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Proveedor</th>
             <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Venta</th>
-            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Ganancia</th><th style="padding:0.7rem;"></th>
+            <th style="padding:0.7rem;color:var(--text-muted);font-size:0.8rem;">Ganancia</th>
+            <th style="padding:0.7rem;"></th>
         </tr></thead><tbody>`;
+        
     ventas.forEach(v => {
         const origenBadge = v.origen === 'bodega' ? '📦 Bodega' : (v.origen === 'proveedor' ? '🚚 Prov' : '📦 Bodega');
-        html += `<tr style="border-bottom:1px solid #222;">
-            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted);">${formatDate(v.fecha)}</td>
-            <td style="padding:0.7rem;font-weight:600;">${v.nombreProducto} <small style="color:var(--neon-green);">(${v.marca})</small></td>
-            <td style="padding:0.7rem;"><span class="size-badge">${v.talla}</span></td>
-            <td style="padding:0.7rem;font-size:0.85rem;color:var(--neon-green)">${origenBadge}</td>
-            <td style="padding:0.7rem;font-size:0.85rem;">${v.proveedor}</td>
-            <td style="padding:0.7rem;">${formatCOP(v.precioVenta)}</td>
-            <td style="padding:0.7rem;color:${v.ganancia >= 0 ? 'var(--neon-green)' : '#ff3333'};font-weight:bold;">${formatCOP(v.ganancia)}</td>            <td style="padding:0.7rem;text-align:center;"><button onclick="deleteVenta('${v.id}')" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Venta">❌</button></td>
-        </tr>`;
-    });
-    list.innerHTML = html + '</tbody></table>';
-}
-
-// ==========================================
-// PROMOCIONES
-// ==========================================
-let storeConfig = { promoLimit: 8, promoRotation: 'random' };
-
-async function loadPromoConfig() {
-    try {
-        const doc = await db.collection('config').doc('store').get();
-        if (doc.exists) {
-            storeConfig = { ...storeConfig, ...doc.data() };
-        }
-        const limitEl = document.getElementById('promo-limit');
-        const rotEl = document.getElementById('promo-rotation');
-        if (limitEl) limitEl.value = storeConfig.promoLimit || 8;
-        if (rotEl) rotEl.value = storeConfig.promoRotation || 'random';
-    } catch(e) { console.error("Error loading config", e); }
-}
-
-setTimeout(loadPromoConfig, 1500);
-
-document.addEventListener('click', async (e) => {
-    if (e.target.id === 'btn-save-promo-config') {
-        const limit = parseInt(document.getElementById('promo-limit').value) || 8;
-        const rot = document.getElementById('promo-rotation').value;
-        try {
-            await db.collection('config').doc('store').set({ promoLimit: limit, promoRotation: rot }, { merge: true });
-            alert('Ajustes guardados correctamente.');
-        } catch(err) {
-            alert('Error al guardar ajustes.');
-            console.error(err);
-        }
-    }
-    
-    if (e.target.id === 'btn-apply-bulk-promo') {
-        const selectEl = document.getElementById('bulk-promo-select');
-        if (!selectEl) return;
-        
-        const selectedOptions = Array.from(selectEl.selectedOptions).map(opt => opt.value);
-        if (selectedOptions.length === 0) return alert('Selecciona al menos un producto');
-        
-        const desc = parseInt(document.getElementById('bulk-promo-value').value) || 0;
-        const tipo = document.getElementById('bulk-promo-type').value || 'percentage';
-        
-        const btn = e.target;
-        btn.disabled = true;
-        btn.textContent = 'Aplicando...';
-        
-        try {
-            const batch = db.batch();
-            selectedOptions.forEach(id => {
-                const docRef = db.collection('productos').doc(id);
-                batch.update(docRef, { enPromocion: true, descuento: desc, tipoPromocion: tipo });
-            });
-            await batch.commit();
-        } catch(err) {
-            alert('Error al aplicar: ' + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Aplicar Promoción';
-        }
-    }
-});
-
-function renderAdminPromos() {
-    const select = document.getElementById('bulk-promo-select');
-    if (select) {
-        const noPromos = products.filter(p => !p.enPromocion);
-        select.innerHTML = noPromos.map(p => `<option value="${p.id}">${p.nombre} (${p.marca || 'Otro'})</option>`).join('');
-    }
-
-    const list = document.getElementById('active-promos-list');
-    const empty = document.getElementById('active-promos-empty');
-    if (!list || !empty) return;
-
-    const activePromos = products.filter(p => p.enPromocion);
-    
-    if (activePromos.length === 0) {
-        list.innerHTML = '';
-        empty.style.display = 'block';
-    } else {
-        empty.style.display = 'none';
-        list.innerHTML = activePromos.map(p => {
-            let pType = p.tipoPromocion || 'percentage';
-            let desc = p.descuento || 0;
-            return `
-            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;">
-                <div style="position:relative; width: 100%; aspect-ratio: 1/1;">
-                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" style="width:100%; height:100%; object-fit:cover;">
-                </div>
-                <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
-                    <div>
-                        <span style="font-size:0.8rem; background:var(--neon-green); color:#000; padding:2px 6px; border-radius:4px; font-weight:bold;">${p.marca}</span>
-                        ${p.codigo ? `<span style="font-size:0.8rem; background:#333; color:#fff; padding:2px 6px; border-radius:4px; margin-left:5px;">${p.codigo}</span>` : ''}
-                    </div>
-                    <strong style="font-size:1.1rem; line-height:1.2;">${p.nombre}</strong>
-                    
-                    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
-                        <select class="form-input" onchange="updatePromoInline('${p.id}', 'tipoPromocion', this.value)" style="padding:0.4rem; font-size:0.9rem;">
-                            <option value="percentage" ${pType === 'percentage' ? 'selected' : ''}>% Descuento</option>
-                            <option value="2x1" ${pType === '2x1' ? 'selected' : ''}>2x1</option>
-                            <option value="freeshipping" ${pType === 'freeshipping' ? 'selected' : ''}>Envío Gratis</option>
-                            <option value="clearance" ${pType === 'clearance' ? 'selected' : ''}>Remate</option>
-                        </select>
-                        
-                        <input type="number" class="form-input" onchange="updatePromoInline('${p.id}', 'descuento', parseInt(this.value) || 0)" value="${desc}" style="padding:0.4rem; font-size:0.9rem; display:${pType === 'percentage' || pType === 'clearance' ? 'block' : 'none'};" placeholder="% Descuento">
-                        
-                        <button class="btn-primary" style="background:#ff3333; padding:0.4rem; margin-top:0.2rem;" onclick="removePromo('${p.id}')">Quitar Promo</button>
-                    </div>
-                </div>
-            </div>
-            `;
-        }).join('');
-    }
-}
-
-window.updatePromoInline = async (id, field, value) => {
-    try {
-        await db.collection('productos').doc(id).update({ [field]: value });
-    } catch(e) {
-        alert('Error: ' + e.message);
-    }
-};
-
-window.removePromo = async id => {
-    try { await db.collection('productos').doc(id).update({ enPromocion: false, descuento: 0 }); }
-    catch(e) { alert('Error: ' + e.message); }
-};
-
-// ==========================================
-// HELPERS
-// ==========================================
-function $(id) { return document.getElementById(id); }
-function formatCOP(n) { return '$' + Math.round(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-function formatDate(ts) {
-    if (!ts) return '';
-    const d = new Date(ts), pad = v => String(v).padStart(2, '0');
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function getTotalStock(prod) {
-    if (!prod?.tallas) return 0;
-    return Object.values(prod.tallas).reduce((s, q) => s + (parseInt(q) || 0), 0);
-}
-
-// ==========================================
-// CREDITOS
-// ==========================================
-// creditos ya declarado arriba
-let currentAbonoCredito = null;
-
-window.renderCreditos = function() {
-    const list = $('creditos-list');
-    const totalEl = $('kpi-creditos-total');
-    const activosEl = $('kpi-creditos-activos');
-    const moraEl = $('kpi-creditos-mora');
-    
-    if (!list) return;
-
-    let totalPorCobrar = 0;
-    let activos = 0;
-    let totalMora = 0;
-    const now = Date.now();
-
-    const activosList = creditos.filter(c => c.estado === 'activo');
-    activosList.forEach(c => {
-        totalPorCobrar += (c.saldoPendiente || 0);
-        activos++;
-        const nextCuota = c.cuotas.find(q => !q.pagado);
-        if (nextCuota && nextCuota.fechaVencimiento < now) {
-            totalMora += nextCuota.monto;
-        }
-    });
-
-    if (totalEl) totalEl.textContent = formatCOP(totalPorCobrar);
-    if (activosEl) activosEl.textContent = activos;
-    if (moraEl) moraEl.textContent = formatCOP(totalMora);
-
-    if (activosList.length === 0) {
-        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No hay créditos activos. 🎉</p>';
-        return;
-    }
-
-    list.innerHTML = activosList.map(c => {
-        const nextCuota = c.cuotas.find(q => !q.pagado);
-        const totalPagado = (c.precioTotal || 0) - (c.saldoPendiente || 0);
-        let statusHtml = '';
-        let statusMsg = '';
-        
-        if (nextCuota) {
-            const daysDiff = Math.floor((nextCuota.fechaVencimiento - now) / (1000 * 60 * 60 * 24));
-            if (daysDiff < 0) {
-                statusHtml = `<span style="color:#ff3333; font-weight:bold;">Vencido (Mora de ${Math.abs(daysDiff)} días)</span>`;
-                statusMsg = `Hola ${c.clienteNombre}, tu cuota de ${formatCOP(nextCuota.monto)} por tus ${c.nombreProducto} venció hace ${Math.abs(daysDiff)} días. Por favor realiza el pago lo antes posible para evitar recargos por mora.`;
-            } else if (daysDiff <= 3) {
-                statusHtml = `<span style="color:#ffaa00;">Próximo a vencer (${daysDiff} días)</span>`;
-                statusMsg = `Hola ${c.clienteNombre}, te recordamos que tu próxima cuota de ${formatCOP(nextCuota.monto)} por tus ${c.nombreProducto} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}. ¡Gracias por tu puntualidad!`;
-            } else if (nextCuota.numero === 1) {
-                statusHtml = `<span style="color:#00e5ff;">Inicio de Crédito</span>`;
-                statusMsg = `Hola ${c.clienteNombre}, gracias por tu compra. Te recordamos que tu primera cuota de ${formatCOP(nextCuota.monto)} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}.`;
-            } else {
-                statusHtml = `<span style="color:var(--neon-green);">Cuotas al día</span>`;
-                statusMsg = `Hola ${c.clienteNombre}, un saludo. Solo para tenerlo en el radar, tu próxima cuota de ${formatCOP(nextCuota.monto)} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}.`;
-            }
-        }
-
-        const encodedMsg = encodeURIComponent(statusMsg);
-        
-        const costo = c.costoTotal || 0;
-        let roiHtml = '';
-        if (costo > 0) {
-            if (totalPagado < costo) {
-                roiHtml = `<span style="background:#ff333333;color:#ff3333;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Aún no recuperas la inversión">🔴 Déficit (Falta ${formatCOP(costo - totalPagado)} para empatar)</span>`;
-            } else if (totalPagado === costo) {
-                roiHtml = `<span style="background:#ffaa0033;color:#ffaa00;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Inversión recuperada">🟡 Equilibrio Alcanzado</span>`;
-            } else {
-                roiHtml = `<span style="background:#00ff8833;color:var(--neon-green);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Todo lo nuevo es ganancia">🟢 Ganancia (+${formatCOP(totalPagado - costo)})</span>`;
-            }
-        }
-
-        return `<div class="list-item" style="flex-wrap:wrap; gap:0.8rem; align-items:flex-start;">
-            <div style="flex:1; min-width:200px;">
-                <h4 style="margin:0; color:var(--neon-green);">${c.clienteNombre}</h4>
-                <p style="margin:0.2rem 0; font-size:0.85rem;">📞 ${c.clienteTelefono}</p>
-                <p style="margin:0; font-size:0.9rem;"><strong>Tenis:</strong> ${c.nombreProducto}</p>
-                <p style="margin:0; font-size:0.9rem;"><strong>Deuda Restante:</strong> ${formatCOP(c.saldoPendiente)} de ${formatCOP(c.precioTotal)}</p>
-                <p style="margin:0.2rem 0 0 0; font-size:0.85rem;">Estado: ${statusHtml}</p>
-                <div style="margin-top:0.5rem;">${roiHtml}</div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
-                <button class="btn-action sell" onclick="promptAbono('${c.id}')">💰 Registrar Abono</button>                <button class="btn-action" style="background:#ff3333; color:white; border:none;" onclick="deleteCredito('${c.id}')">🗑️ Anular Crédito</button>
-                <a href="https://wa.me/57${c.clienteTelefono}?text=${encodedMsg}" target="_blank" class="btn-action" style="background:#25D366; color:#000; text-decoration:none; text-align:center; padding:0.4rem 1rem;">💬 Enviar WhatsApp</a>
-            </div>
-        </div>`;
-    }).join('');
-};
-
-window.promptAbono = function(creditoId) {
-    const cred = creditos.find(c => c.id === creditoId);
-    if (!cred) return;
-    currentAbonoCredito = cred;
-    
-    $('abono-cliente-nombre').textContent = cred.clienteNombre + " - " + cred.nombreProducto;
-    
-    const list = $('abono-cuotas-list');
-    list.innerHTML = cred.cuotas.map((q, idx) => {
-        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:0.5rem; border-bottom:1px solid #333;">
-            <div>
-                <strong>Cuota ${q.numero}</strong> <br>
-                <small>${formatDate(q.fechaVencimiento).split(' ')[0]} - ${formatCOP(q.monto)}</small>
-            </div>
-            <div>
-                ${q.pagado ? 
-                    '<span style="color:var(--neon-green)">Pagado</span>' : 
-                    `<button class="btn-action sell" style="padding:0.3rem 0.8rem;" onclick="confirmAbono(${idx})">Pagar</button>`
-                }
-            </div>
-        </div>`;
-    }).join('');
-    
-    $('abono-modal').classList.remove('hidden');
-};
-
-$('abono-modal-close')?.addEventListener('click', () => $('abono-modal').classList.add('hidden'));
-
-window.confirmAbono = async function(cuotaIndex) {
-    if (!currentAbonoCredito) return;
-    const cred = currentAbonoCredito;
-    const cuota = cred.cuotas[cuotaIndex];
-    
-    if (cuota.pagado) return;
-    
-    cuota.pagado = true;
-    cuota.fechaPago = Date.now();
-    
-    cred.saldoPendiente -= cuota.monto;
-    if (cred.saldoPendiente <= 0) {
-        cred.saldoPendiente = 0;
-        cred.estado = 'pagado';
-    }
-    
-    try {
-        const batch = db.batch();
-        batch.update(db.collection('creditos').doc(cred.id), {
-            cuotas: cred.cuotas,
-            saldoPendiente: cred.saldoPendiente,
-            estado: cred.estado
-        });
-        batch.set(db.collection('transacciones').doc(), {
-            tipo: 'ingreso',
-            concepto: 'Pago Cuota Crédito: ' + cred.nombreProducto + ' (' + cred.clienteNombre + ')',
-            monto: cuota.monto,
-            fecha: Date.now(),
-            refId: cred.id
-        });
-        await batch.commit();
-        alert('Pago registrado correctamente. ✅');
-        $('abono-modal').classList.add('hidden');
-    } catch(e) {
-        alert('Error: ' + e.message);
-    }
-};
-
-window.updateClientDatalist = function() {
-    const dlNombres = $('dl-clientes-nombres');
-    const dlTelefonos = $('dl-clientes-telefonos');
-    if (!dlNombres || !dlTelefonos) return;
-
-    // Get unique names and phones from creditos
-    const nombres = new Set();
-    const telefonos = new Set();
-    // Also we can keep track of pairs so when they type name, we auto-fill phone!
-    window.clientesDirectorio = {};
-
-    creditos.forEach(c => {
-        if (c.clienteNombre) nombres.add(c.clienteNombre);
-        if (c.clienteTelefono) telefonos.add(c.clienteTelefono);
-        if (c.clienteNombre && c.clienteTelefono) {
-            window.clientesDirectorio[c.clienteNombre] = c.clienteTelefono;
-            window.clientesDirectorio[c.clienteTelefono] = c.clienteNombre;
-        }
-    });
-
-    dlNombres.innerHTML = Array.from(nombres).map(n => `<option value="${n}">`).join('');
-    dlTelefonos.innerHTML = Array.from(telefonos).map(t => `<option value="${t}">`).join('');
-};
-
-// Auto-fill logic
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        const inputNombre = $('sell-cliente-nombre');
-        const inputTelefono = $('sell-cliente-telefono');
-        
-        if (inputNombre && inputTelefono) {
-            inputNombre.addEventListener('change', (e) => {
-                const val = e.target.value.trim();
-                if (window.clientesDirectorio && window.clientesDirectorio[val]) {
-                    inputTelefono.value = window.clientesDirectorio[val];
-                }
-            });
-            inputTelefono.addEventListener('change', (e) => {
-                const val = e.target.value.trim();
-                if (window.clientesDirectorio && window.clientesDirectorio[val]) {
-                    inputNombre.value = window.clientesDirectorio[val];
-                }
-            });
-        }
-    }, 1000);
-});
-window.deleteVenta = async id => {
-    if (confirm('¿Estás seguro de eliminar este registro de venta? (Nota: el stock no se devolverá automáticamente, debes sumarlo manual en el producto)')) {
-        try { await db.collection('ventas').doc(id).delete(); }
-        catch (e) { alert('Error: ' + e.message); }
-    }
-};
-window.deleteCredito = async id => {
-    if (confirm('¿Estás seguro de anular y borrar este crédito por completo?')) {
-        try { await db.collection('creditos').doc(id).delete(); }
-        catch (e) { alert('Error: ' + e.message); }
-    }
-};
-
-
-// ==========================================
-// CAJA (FINANZAS)
-// ==========================================
-window.renderCaja = function() {
-    const list = $('caja-list');
-    const saldoEl = $('kpi-caja-saldo');
-    const ingresosEl = $('kpi-caja-ingresos');
-    const egresosEl = $('kpi-caja-egresos');
-    
-    if (!list) return;
-
-    let saldo = 0, ingresos = 0, egresos = 0;
-    
-    // transacciones is already sorted descending by 'fecha' from Firestore listener
-    let html = '';
-    
-    transacciones.forEach(t => {
-        const monto = t.monto || 0;
-        if (t.tipo === 'ingreso') {
-            ingresos += monto;
-            saldo += monto;
-        } else {
-            egresos += monto;
-            saldo -= monto;
-        }
-        
-        const color = t.tipo === 'ingreso' ? 'var(--neon-green)' : '#ff3333';
-        const signo = t.tipo === 'ingreso' ? '+' : '-';
+        const met = v.metodo === 'credito' ? '<span style="color:#ffcc00; font-size:0.7rem; border:1px solid #ffcc00; padding:2px 4px; border-radius:4px; margin-left:5px;">Crédito</span>' : '';
+        const clientHtml = (v.clienteNombre || v.clienteTelefono || v.clienteInfo) ? `<div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,255,136,0.05); border-left: 2px solid var(--neon-green); font-size: 0.85rem; border-radius: 0 4px 4px 0;">👤 <b>${v.clienteNombre || 'Sin nombre'}</b> ${v.clienteTelefono ? '📞 '+v.clienteTelefono : ''} ${v.clienteInfo ? '<br>📌 '+v.clienteInfo : ''}</div>` : '';
         
         html += `<tr style="border-bottom:1px solid #222;">
-            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted);">${formatDate(t.fecha)}</td>
-            <td style="padding:0.7rem;font-weight:600;">${t.concepto}</td>
-            <td style="padding:0.7rem;color:${color};"><span class="badge" style="background:${color}22;color:${color}">${t.tipo.toUpperCase()}</span></td>
-            <td style="padding:0.7rem;color:${color};font-weight:bold;">${signo}${formatCOP(monto)}</td>
-            <td style="padding:0.7rem;text-align:center;">
-                <button onclick="deleteTransaccion('${t.id}')" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Movimiento">❌</button>
+            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted); vertical-align:top;">
+                ${formatDate(v.fecha)}
+                ${v.fotoProducto ? `<br><img src="${v.fotoProducto}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; border:1px solid #333;">` : ''}
+            </td>
+            <td style="padding:0.7rem; vertical-align:top;">
+                <strong style="font-size:1rem;">${v.nombreProducto}</strong> <small style="color:var(--neon-green);">(${v.marca})</small>
+                <br><small style="color:var(--text-muted);">Talla: <span class="size-badge" style="padding:1px 4px; font-size:0.7rem;">${v.talla}</span> ${met}</small>
+                ${clientHtml}
+            </td>
+            <td style="padding:0.7rem;font-size:0.85rem; vertical-align:top;">
+                <span style="color:var(--neon-green)">${origenBadge}</span>
+                <br><small style="color:var(--text-muted);">${v.proveedor}</small>
+            </td>
+            <td style="padding:0.7rem; vertical-align:top;">${formatCOP(v.precioVenta)}</td>
+            <td style="padding:0.7rem; color:var(--neon-green); font-weight:bold; vertical-align:top;">${formatCOP(v.ganancia)}</td>
+            <td style="padding:0.7rem; vertical-align:top;">
+                <button class="btn-action delete" onclick="deleteVenta('${v.id}')" style="padding:0.3rem 0.5rem;">X</button>
             </td>
         </tr>`;
     });
-
-    if (transacciones.length === 0) {
-        list.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">No hay movimientos registrados.</td></tr>';
-    } else {
-        list.innerHTML = html;
-    }
-
-    if (saldoEl) saldoEl.textContent = formatCOP(saldo);
-    if (ingresosEl) ingresosEl.textContent = formatCOP(ingresos);
-    if (egresosEl) egresosEl.textContent = formatCOP(egresos);
-};
-
-window.deleteTransaccion = async function(id) {
-    if (confirm('¿Estás seguro de eliminar este movimiento manual de caja?')) {
-        try { await db.collection('transacciones').doc(id).delete(); }
-        catch (e) { alert('Error: ' + e.message); }
-    }
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-    $('transaccion-modal-close')?.addEventListener('click', () => $('transaccion-modal').classList.add('hidden'));
     
-    $('form-transaccion')?.addEventListener('submit', async e => {
-        e.preventDefault();
-        const tipo = $('trans-tipo').value;
-        const concepto = $('trans-concepto').value.trim();
-        const monto = parseInt($('trans-monto').value);
-        
-        try {
-            await db.collection('transacciones').add({
-                tipo,
-                concepto,
-                monto,
-                fecha: Date.now(),
-                manual: true
-            });
-            $('transaccion-modal').classList.add('hidden');
-            $('form-transaccion').reset();
-        } catch (err) {
-            alert('Error guardando transacción: ' + err.message);
-        }
-    });
-});
+    html += `</tbody></table>`;
+    list.innerHTML = html;
+};
+
