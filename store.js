@@ -269,6 +269,7 @@ window.nextModalImg = function(dir) {
 };
 
 window.openProductModal = id => {
+    window.currentProductId = id;
     const prod = products.find(p => p.id === id);
     if (!prod) return;
     const modal = $('product-modal');
@@ -433,43 +434,7 @@ function closeLightbox() {
 }
 
 function lightboxNavigate(dir) {
-    if (!currentModalPhotos) return;
-    currentPhotoIndex += dir;
-    
-    if (currentPhotoIndex < 0 || currentPhotoIndex >= currentModalPhotos.length) {
-        // Cambiar al producto anterior/siguiente
-        if (window.currentRenderedProducts && window.currentRenderedProducts.length > 0) {
-            let currIdx = window.currentRenderedProducts.indexOf(window.currentProductId);
-            if (currIdx === -1) currIdx = 0;
-            
-            let nextIdx = currIdx + (currentPhotoIndex < 0 ? -1 : 1);
-            if (nextIdx < 0) nextIdx = window.currentRenderedProducts.length - 1;
-            if (nextIdx >= window.currentRenderedProducts.length) nextIdx = 0;
-            
-            let nextProdId = window.currentRenderedProducts[nextIdx];
-            
-            openProductModal(nextProdId);
-            
-            if (dir < 0) {
-                currentPhotoIndex = currentModalPhotos.length - 1;
-                changeModalImg(currentPhotoIndex);
-            }
-        } else {
-            if (currentPhotoIndex < 0) currentPhotoIndex = currentModalPhotos.length - 1;
-            if (currentPhotoIndex >= currentModalPhotos.length) currentPhotoIndex = 0;
-        }
-    }
-    
-    resetLightboxZoom();
-    updateLightbox();
-    
-    const img = document.getElementById('modal-img');
-    if (img) img.src = currentModalPhotos[currentPhotoIndex];
-    
-    document.querySelectorAll('.modal-thumb-item').forEach((el, i) => {
-        el.style.border = i === currentPhotoIndex ? '2px solid var(--neon-green)' : '2px solid transparent';
-        el.style.opacity = i === currentPhotoIndex ? '1' : '0.6';
-    });
+    window.navigateGlobal(dir);
 }
 
 if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
