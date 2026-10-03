@@ -793,21 +793,23 @@ function getSizeEquivalence(talla, genero) {
     if (!talla) return '';
     if (genero === 'Mujer') {
         switch(talla) {
-            case 35: return "US 5.0 | EUR 36 | 22.0 cm";
-            case 36: return "US 6.0 | EUR 37 | 23.0 cm";
-            case 37: return "US 7.0 | EUR 38 | 24.0 cm";
-            case 38: return "US 8.0 | EUR 39 | 25.0 cm";
-            case 39: return "US 9.0 | EUR 40 | 26.0 cm";
+            case 35: return "US 5/5.5 | EUR 36 | 22.5 cm";
+            case 36: return "US 6/6.5 | EUR 37 | 23.5 cm";
+            case 37: return "US 7/7.5 | EUR 38 | 24 cm";
+            case 38: return "US 8 | EUR 39 | 25 cm";
+            case 39: return "US 8.5/9 | EUR 40 | 26 cm";
             default: return "";
         }
     } else {
         switch(talla) {
-            case 38: return "US 7.0 | EUR 40 | 25.0 cm";
-            case 39: return "US 8.0 | EUR 41 | 26.0 cm";
-            case 40: return "US 8.5 | EUR 42 | 26.5 cm";
-            case 41: return "US 9.5 | EUR 43 | 27.5 cm";
-            case 42: return "US 10.0 | EUR 44 | 28.0 cm";
-            case 43: return "US 10.5 | EUR 45 | 28.5 cm";
+            case 37: return "US 7 | EUR 40 | 25 cm";
+            case 38: return "US 8 | EUR 41 | 26 cm";
+            case 39: return "US 8.5/9 | EUR 42 | 26.5 cm";
+            case 40: return "US 9.5 | EUR 43 | 27 cm";
+            case 41: return "US 10/10.5 | EUR 44 | 28 cm";
+            case 42: return "US 10/10.5 | EUR 44 | 28 cm";
+            case 43: return "US 11 | EUR 45 | 29 cm";
+            case 44: return "US 12 | EUR 46 | 30 cm";
             default: return "";
         }
     }
