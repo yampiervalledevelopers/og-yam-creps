@@ -448,8 +448,17 @@ window.openProductModal = id => {
         btn.addEventListener('click', () => {
             sizesContainer.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
+            const eqEl = $('modal-size-equivalence');
+            if (eqEl) {
+                const eq = getSizeEquivalence(btn.dataset.size, prod.genero);
+                eqEl.textContent = eq ? 'Equivalencia aprox: ' + eq : '';
+            }
         });
     });
+    // Trigger primer click
+    const firstBtn = sizesContainer.querySelector('.size-btn.selected');
+    if (firstBtn) firstBtn.click();
+    else if ($('modal-size-equivalence')) $('modal-size-equivalence').textContent = '';
 
     const waBtn = $('modal-wa-btn');
     const newBtn = waBtn.cloneNode(true);

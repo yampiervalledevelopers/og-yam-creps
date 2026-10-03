@@ -385,6 +385,13 @@ function createSizeGrid(gridId) {
         item.className = 'size-stock-item';
         item.dataset.size = s;
         item.innerHTML = `<span class="size-label">${s}</span><input type="number" class="size-input" min="1" value="1" disabled>`;
+        item.addEventListener('mouseenter', () => {
+            const eq = typeof getSizeEquivalence !== 'undefined' ? getSizeEquivalence(s, $('prod-genero').value) : '';
+            if ($('admin-size-equivalence')) $('admin-size-equivalence').textContent = eq ? `Equivalencia aprox (${s} COL): ${eq}` : '';
+        });
+        item.addEventListener('mouseleave', () => {
+            if ($('admin-size-equivalence')) $('admin-size-equivalence').textContent = '';
+        });
         item.addEventListener('click', e => {
             if (e.target.classList.contains('size-input')) return;
             item.classList.toggle('active');
@@ -566,6 +573,13 @@ window.promptSell = id => {
             Object.entries(sourceDict).filter(([, q]) => q > 0)
                 .map(([t, q]) => `<option value="${t}">Talla ${t} (${q} en stock)</option>`).join('');
     };
+    
+    sizeSelect.onchange = (e) => {
+        const eq = typeof getSizeEquivalence !== 'undefined' ? getSizeEquivalence(e.target.value, prod.genero) : '';
+        if ($('sell-size-equivalence')) $('sell-size-equivalence').textContent = eq ? `Aprox (${e.target.value} COL): ${eq}` : '';
+    };
+    sizeSelect.onchange({target: sizeSelect});
+    
     
     origenSelect.onchange = updateSizeOptions;
     // Default to Bodega if it has any stock, otherwise Proveedor
