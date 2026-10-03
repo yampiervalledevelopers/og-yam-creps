@@ -1164,12 +1164,16 @@ window.promptAbono = function(creditoId) {
         return `<div style="display:flex; justify-content:space-between; align-items:center; padding:0.5rem; border-bottom:1px solid #333;">
             <div>
                 <strong>Cuota ${q.numero}</strong> <br>
-                <small>${formatDate(q.fechaVencimiento).split(' ')[0]} - ${formatCOP(q.monto)}</small>
+                <small>${formatDate(q.fechaVencimiento).split(' ')[0]}</small>
             </div>
             <div>
                 ${q.pagado ? 
-                    '<span style="color:var(--neon-green)">Pagado</span>' : 
-                    `<button class="btn-action sell" style="padding:0.3rem 0.8rem;" onclick="confirmAbono(${idx})">Pagar</button>`
+                    `<span style="color:var(--neon-green)">Pagado: ${formatCOP(q.montoPagado || q.monto)}</span>` : 
+                    `<div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="color:#888;">$</span>
+                        <input type="number" id="cuota-pago-${idx}" value="${q.monto}" style="width:90px; padding:0.3rem; background:#111; color:var(--neon-green); border:1px solid #333; border-radius:4px; font-weight:bold;">
+                        <button class="btn-action sell" style="padding:0.3rem 0.8rem;" onclick="confirmAbono(${idx})">Pagar</button>
+                    </div>`
                 }
             </div>
         </div>`;
@@ -1187,10 +1191,19 @@ window.confirmAbono = async function(cuotaIndex) {
     
     if (cuota.pagado) return;
     
+    const inputEl = document.getElementById(`cuota-pago-${cuotaIndex}`);
+    const pagoReal = inputEl ? parseFloat(inputEl.value) : cuota.monto;
+    
+    if (isNaN(pagoReal) || pagoReal <= 0) {
+        alert("Por favor ingresa un monto válido.");
+        return;
+    }
+    
     cuota.pagado = true;
     cuota.fechaPago = Date.now();
+    cuota.montoPagado = pagoReal;
     
-    cred.saldoPendiente -= cuota.monto;
+    cred.saldoPendiente -= pagoReal;
     if (cred.saldoPendiente <= 0) {
         cred.saldoPendiente = 0;
         cred.estado = 'pagado';
@@ -1206,12 +1219,12 @@ window.confirmAbono = async function(cuotaIndex) {
         batch.set(db.collection('transacciones').doc(), {
             tipo: 'ingreso',
             concepto: 'Pago Cuota Crédito: ' + cred.nombreProducto + ' (' + cred.clienteNombre + ')',
-            monto: cuota.monto,
+            monto: pagoReal,
             fecha: Date.now(),
             refId: cred.id
         });
         await batch.commit();
-        alert('Pago registrado correctamente. ✅');
+        alert('Pago registrado correctamente. 💵');
         $('abono-modal').classList.add('hidden');
     } catch(e) {
         alert('Error: ' + e.message);
