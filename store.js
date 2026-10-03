@@ -139,6 +139,9 @@ function shuffle(arr) {
 }
 
 window.renderStore = function() {
+    const loader = document.getElementById('initial-loader');
+    if (loader) loader.style.display = 'none';
+
     const grid = $('product-grid');
     if (!grid) return;
 

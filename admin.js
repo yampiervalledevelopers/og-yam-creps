@@ -182,7 +182,7 @@ window.renderPhotosGrid = function() {
     if (!grid) return;
     grid.innerHTML = currentPhotos.map((url, idx) => `
         <div style="position:relative; display:inline-block;">
-            <img src="${url}" style="width:70px; height:70px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid #333;">
+            <img src="${url}" loading="lazy" style="width:70px; height:70px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid #333;">
             <button type="button" onclick="removePhoto(${idx})" style="position:absolute; top:-5px; right:-5px; background:red; color:#fff; border-radius:50%; width:20px; height:20px; border:none; cursor:pointer; font-size:12px; font-weight:bold;">X</button>
         </div>
     `).join('');
@@ -429,6 +429,9 @@ function resetProductForm() {
 }
 
 function renderAdminProducts() {
+    const loader = document.getElementById('admin-loader');
+    if (loader) loader.style.display = 'none';
+
     const list = $('productos-list');
     const countEl = $('admin-prod-count');
     if (!list) return;
@@ -470,7 +473,7 @@ function renderAdminProducts() {
 
         return `<div class="list-item" style="flex-wrap:wrap; gap:0.8rem;">
             <div style="display:flex; gap:0.8rem; align-items:center; flex:1; min-width:180px;">
-                ${mainPhoto ? `<img src="${mainPhoto}" style="width:50px;height:50px;object-fit:cover;border-radius:var(--radius-sm);" onerror="this.alt='👟';">` : `<div style="width:50px;height:50px;background:#222;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">👟</div>`}
+                ${mainPhoto ? `<img src="${mainPhoto}" loading="lazy" style="width:50px;height:50px;object-fit:cover;border-radius:var(--radius-sm);" onerror="this.alt='👟';">` : `<div style="width:50px;height:50px;background:#222;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">👟</div>`}
                 <div class="list-item-info">
                     <strong>${prod.codigo ? `<span style="color:var(--neon-green)">[${prod.codigo}]</span> ` : ''}${prod.nombre} ${isSoldOut ? '<span style="color:#ff3333;font-size:0.8em;">[AGOTADO]</span>' : ''}</strong>
                     <span>${prod.marca} · ${provName} · PVP: ${formatCOP(prod.precioVenta)}</span>
@@ -893,7 +896,7 @@ function renderSales() {
         html += `<tr style="border-bottom:1px solid #222;">
             <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted); vertical-align:top;">
                 ${formatDate(v.fecha)}
-                ${fotoURL ? `<br><img src="${fotoURL}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; border:1px solid #333;">` : ''}
+                ${fotoURL ? `<br><img src="${fotoURL}" loading="lazy" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; border:1px solid #333;">` : ''}
             </td>
             <td style="padding:0.7rem; vertical-align:top;">
                 <strong style="font-size:1rem;">${v.nombreProducto}</strong> <small style="color:var(--neon-green);">(${v.marca})</small>
@@ -1004,7 +1007,7 @@ function renderAdminPromos() {
             return `
             <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;">
                 <div style="position:relative; width: 100%; aspect-ratio: 1/1;">
-                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" style="width:100%; height:100%; object-fit:cover;">
+                    <img src="${p.foto || (p.fotos ? p.fotos[0] : '')}" loading="lazy" style="width:100%; height:100%; object-fit:cover;">
                 </div>
                 <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
                     <div>

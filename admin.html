@@ -6,14 +6,16 @@
     <title>O'G YAM CREPS — Panel de Administración</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap"></noscript>
     <link rel="stylesheet" href="styles.css">
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ff88">
     <link rel="apple-touch-icon" href="logo.jpg">
@@ -26,13 +28,14 @@
         });
       }
     </script>
+    <script defer src="admin.js"></script>
 </head>
 <body>
 
     <!-- NAVBAR ADMIN -->
     <nav class="navbar">
         <div class="brand">
-            <img src="logo.jpg" alt="O'G YAM CREPS" class="brand-logo-img">
+            <img src="logo.jpg" fetchpriority="high" alt="O'G YAM CREPS" class="brand-logo-img">
             <span style="background:var(--neon-green); color:#000; padding:0.2rem 0.6rem; border-radius:var(--radius-sm); font-size:0.7rem; font-weight:800; margin-left:0.5rem;">ADMIN</span>
         </div>
         <div class="nav-links" id="admin-nav-links" style="display:none;">
@@ -45,7 +48,7 @@
     <main id="login-screen" class="view" style="min-height:80vh; display:flex; align-items:center; justify-content:center;">
         <div class="admin-card" style="max-width:400px; width:95%; margin:2rem auto;">
             <div style="text-align:center; margin-bottom:2rem;">
-                <img src="logo.jpg" alt="O'G YAM CREPS" style="max-width:200px; margin-bottom:1rem;">
+                <img src="logo.jpg" fetchpriority="high" alt="O'G YAM CREPS" style="max-width:200px; margin-bottom:1rem;">
                 <h2 style="color:var(--neon-green); margin-top:0.5rem;">Panel de Administración</h2>
                 <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.5rem;">Ingresa con tu cuenta de administrador</p>
             </div>
@@ -473,7 +476,7 @@
     </div>
     <datalist id="dl-clientes-nombres"></datalist>
     <datalist id="dl-clientes-telefonos"></datalist>
-    <script src="admin.js"></script>
+    
     <!-- Modal: Nueva Transacción Manual -->
     <div id="transaccion-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width:400px;">

@@ -6,12 +6,14 @@
     <title>O'G YAM CREPS — Sneakers & Tenis Medellín</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600;800&display=swap"></noscript>
     <link rel="stylesheet" href="styles.css">
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ff88">
     <link rel="apple-touch-icon" href="logo.jpg">
@@ -24,13 +26,14 @@
         });
       }
     </script>
+    <script defer src="store.js"></script>
 </head>
 <body>
 
     <!-- NAVBAR -->
     <nav class="navbar">
         <div class="brand">
-            <a href="index.html"><img src="logo.jpg" alt="O'G YAM CREPS" class="brand-logo-img"></a>
+            <a href="index.html"><img src="logo.jpg" fetchpriority="high" alt="O'G YAM CREPS" class="brand-logo-img"></a>
         </div>
         
                 <div class="nav-menu">
@@ -41,57 +44,57 @@
         </div>
 
         <div class="brand right-logo">
-            <a href="index.html"><img src="logo.jpg" alt="O'G YAM CREPS" class="brand-logo-img"></a>
+            <a href="index.html"><img src="logo.jpg" fetchpriority="high" alt="O'G YAM CREPS" class="brand-logo-img"></a>
         </div>
     </nav>
 
     <!-- LOGO GRANDE PRINCIPAL -->
     <section class="hero-logo-section">
-        <img src="logo.jpg" alt="O'G YAM CREPS" class="hero-logo-large">
+        <img src="logo.jpg" fetchpriority="high" alt="O'G YAM CREPS" class="hero-logo-large">
     </section>
 
     <!-- CARRUSEL DE MARCAS (DOBLE PISO) -->
     <section class="brands-carousel-section">
         <div class="carousel-track-wrapper">
             <div class="carousel-track track-1">
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" alt="Nike" class="brand-logo-svg nike"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/en/3/37/Jumpman_logo.svg" alt="Jordan" class="brand-logo-svg jordan"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="brand-logo-svg adidas"></div>
-                <div class="brand-card"><img src="newbalance.svg" alt="New Balance" class="brand-logo-svg nb"></div>
-                <div class="brand-card"><img src="puma.svg" alt="Puma" class="brand-logo-svg puma"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Reebok_2019_logo.svg" alt="Reebok" class="brand-logo-svg reebok"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg" alt="Converse" class="brand-logo-svg converse"></div>
-                <div class="brand-card"><img src="vans.svg" alt="Vans" class="brand-logo-svg vans"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" alt="Nike" class="brand-logo-svg nike" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/en/3/37/Jumpman_logo.svg" alt="Jordan" class="brand-logo-svg jordan" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="brand-logo-svg adidas" loading="lazy"></div>
+                <div class="brand-card"><img src="newbalance.svg" alt="New Balance" class="brand-logo-svg nb" loading="lazy"></div>
+                <div class="brand-card"><img src="puma.svg" alt="Puma" class="brand-logo-svg puma" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Reebok_2019_logo.svg" alt="Reebok" class="brand-logo-svg reebok" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg" alt="Converse" class="brand-logo-svg converse" loading="lazy"></div>
+                <div class="brand-card"><img src="vans.svg" alt="Vans" class="brand-logo-svg vans" loading="lazy"></div>
                 <!-- Duplicado para loop infinito -->
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" alt="Nike" class="brand-logo-svg nike"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/en/3/37/Jumpman_logo.svg" alt="Jordan" class="brand-logo-svg jordan"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="brand-logo-svg adidas"></div>
-                <div class="brand-card"><img src="newbalance.svg" alt="New Balance" class="brand-logo-svg nb"></div>
-                <div class="brand-card"><img src="puma.svg" alt="Puma" class="brand-logo-svg puma"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Reebok_2019_logo.svg" alt="Reebok" class="brand-logo-svg reebok"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg" alt="Converse" class="brand-logo-svg converse"></div>
-                <div class="brand-card"><img src="vans.svg" alt="Vans" class="brand-logo-svg vans"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" alt="Nike" class="brand-logo-svg nike" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/en/3/37/Jumpman_logo.svg" alt="Jordan" class="brand-logo-svg jordan" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="brand-logo-svg adidas" loading="lazy"></div>
+                <div class="brand-card"><img src="newbalance.svg" alt="New Balance" class="brand-logo-svg nb" loading="lazy"></div>
+                <div class="brand-card"><img src="puma.svg" alt="Puma" class="brand-logo-svg puma" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Reebok_2019_logo.svg" alt="Reebok" class="brand-logo-svg reebok" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg" alt="Converse" class="brand-logo-svg converse" loading="lazy"></div>
+                <div class="brand-card"><img src="vans.svg" alt="Vans" class="brand-logo-svg vans" loading="lazy"></div>
             </div>
         </div>
         <div class="carousel-track-wrapper">
             <div class="carousel-track track-2">
-                <div class="brand-card"><img src="vans.svg" alt="Vans" class="brand-logo-svg vans"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg" alt="Converse" class="brand-logo-svg converse"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Reebok_2019_logo.svg" alt="Reebok" class="brand-logo-svg reebok"></div>
-                <div class="brand-card"><img src="puma.svg" alt="Puma" class="brand-logo-svg puma"></div>
-                <div class="brand-card"><img src="newbalance.svg" alt="New Balance" class="brand-logo-svg nb"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="brand-logo-svg adidas"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/en/3/37/Jumpman_logo.svg" alt="Jordan" class="brand-logo-svg jordan"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" alt="Nike" class="brand-logo-svg nike"></div>
+                <div class="brand-card"><img src="vans.svg" alt="Vans" class="brand-logo-svg vans" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg" alt="Converse" class="brand-logo-svg converse" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Reebok_2019_logo.svg" alt="Reebok" class="brand-logo-svg reebok" loading="lazy"></div>
+                <div class="brand-card"><img src="puma.svg" alt="Puma" class="brand-logo-svg puma" loading="lazy"></div>
+                <div class="brand-card"><img src="newbalance.svg" alt="New Balance" class="brand-logo-svg nb" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="brand-logo-svg adidas" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/en/3/37/Jumpman_logo.svg" alt="Jordan" class="brand-logo-svg jordan" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" alt="Nike" class="brand-logo-svg nike" loading="lazy"></div>
                 <!-- Duplicado para loop infinito -->
-                <div class="brand-card"><img src="vans.svg" alt="Vans" class="brand-logo-svg vans"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg" alt="Converse" class="brand-logo-svg converse"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Reebok_2019_logo.svg" alt="Reebok" class="brand-logo-svg reebok"></div>
-                <div class="brand-card"><img src="puma.svg" alt="Puma" class="brand-logo-svg puma"></div>
-                <div class="brand-card"><img src="newbalance.svg" alt="New Balance" class="brand-logo-svg nb"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="brand-logo-svg adidas"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/en/3/37/Jumpman_logo.svg" alt="Jordan" class="brand-logo-svg jordan"></div>
-                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" alt="Nike" class="brand-logo-svg nike"></div>
+                <div class="brand-card"><img src="vans.svg" alt="Vans" class="brand-logo-svg vans" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Converse_logo.svg" alt="Converse" class="brand-logo-svg converse" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Reebok_2019_logo.svg" alt="Reebok" class="brand-logo-svg reebok" loading="lazy"></div>
+                <div class="brand-card"><img src="puma.svg" alt="Puma" class="brand-logo-svg puma" loading="lazy"></div>
+                <div class="brand-card"><img src="newbalance.svg" alt="New Balance" class="brand-logo-svg nb" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="brand-logo-svg adidas" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/en/3/37/Jumpman_logo.svg" alt="Jordan" class="brand-logo-svg jordan" loading="lazy"></div>
+                <div class="brand-card"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" alt="Nike" class="brand-logo-svg nike" loading="lazy"></div>
             </div>
         </div>
     </section>
@@ -105,7 +108,7 @@
     <footer class="site-footer">
         <div class="footer-top">
             <div class="footer-logo">
-                <img src="logo.jpg" alt="O'G YAM CREPS">
+                <img src="logo.jpg" fetchpriority="high" alt="O'G YAM CREPS">
             </div>
             
                         <div class="footer-menu">
@@ -116,7 +119,7 @@
             </div>
 
             <div class="footer-logo">
-                <img src="logo.jpg" alt="O'G YAM CREPS">
+                <img src="logo.jpg" fetchpriority="high" alt="O'G YAM CREPS">
             </div>
         </div>
         <div class="footer-bottom">
@@ -159,7 +162,7 @@
         <div id="lightbox-counter" class="lightbox-counter"></div>
     </div>
 
-    <script src="store.js"></script>
+    
 </body>
 </html>
 
