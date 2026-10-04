@@ -1,4 +1,4 @@
-﻿/**
+/**
  * O'G YAM CREPS — Panel de Administración (admin.js)
  * Firebase Auth + Firestore. Completamente separado de la tienda pública.
  */
@@ -708,7 +708,13 @@ async function confirmSale() {
         
         if (origen === 'proveedor') {
             batch.set(db.collection('transacciones').doc(), {
-                tipo: 'egreso', concepto: 'Costo Proveedor (Sobre pedido): ' + prod.nombre, monto: Number(costoTotal), fecha: now, refId: ventaRef.id
+                                tipo: 'egreso',
+                concepto: `Pago Proveedor (Bajo pedido): ${prod.nombre} - Talla ${size} (Zapato ${formatCOP(prod.costoProveedor || 0)} + Envío ${formatCOP(finalEnvio)})`,
+                monto: Number(costoTotal),
+                costoZapato: Number(prod.costoProveedor || 0),
+                costoEnvio: Number(finalEnvio),
+                proveedor: prov ? prov.nombre : 'Local',
+                fecha: now, refId: ventaRef.id
             });
         }
         
