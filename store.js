@@ -44,19 +44,18 @@ function initFirestore() {
     }, err => console.error("Error cargando productos:", err));
 }
 
-window.nextCardImg = function(id, dir) {
+window.nextCardImg = function(id, dir, btn) {
     window.currentProductId = id;
     const prod = products.find(p => p.id === id);
     if (!prod) return;
     let fotos = prod.fotos || (prod.foto ? [prod.foto] : []);
     if (fotos.length <= 1) return;
     
-    let imgEl = document.getElementById('card-img-' + id);
+    let imgEl = (btn && btn.closest) ? btn.closest('.card-img-wrapper')?.querySelector('.card-img') : document.getElementById('card-img-' + id);
+    if (!imgEl) imgEl = document.getElementById('card-img-' + id);
     if (!imgEl) return;
     
     let currentSrc = imgEl.getAttribute('src');
-    // For relative URLs or mismatches, we can also keep track of current index, 
-    // but a direct indexOf match is usually fine for absolute URLs.
     let idx = fotos.indexOf(currentSrc);
     if (idx === -1) idx = 0;
     
@@ -99,6 +98,9 @@ function createCardHtml(prod) {
                 <div class="price-new-wrap"><span class="price-label highlight">Ahora:</span><span class="price-new">${formatCOP(precioFinal)}</span></div>
             `;
         }
+    } else if (prod.isNovedad) {
+        badgeHtml = `<div class="promo-badge" style="background:var(--neon-green); color:#000; font-weight:800; box-shadow:0 0 10px rgba(57,255,20,0.4);">⚡ NUEVO</div>`;
+        priceHtml = `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div>`;
     } else {
         priceHtml = `<div class="price-new-wrap"><span class="price-new">${formatCOP(pVenta)}</span></div>`;
     }
@@ -111,8 +113,8 @@ function createCardHtml(prod) {
         <div class="card-img-wrapper" style="position:relative;">
             ${badgeHtml}
             ${fotosArray.length > 1 ? `
-                <button class="card-nav-btn left-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', -1)">&#10094;</button>
-                <button class="card-nav-btn right-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', 1)">&#10095;</button>
+                <button class="card-nav-btn left-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', -1, this)">&#10094;</button>
+                <button class="card-nav-btn right-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', 1, this)">&#10095;</button>
             ` : ''}
             ${mainPhoto 
                 ? `<img id="card-img-${prod.id}" class="card-img" src="${mainPhoto}" alt="${prod.nombre}" loading="lazy">` 
@@ -180,8 +182,57 @@ window.renderStore = function() {
             grid.parentNode.insertBefore(banner, grid);
         }
         
-        window.currentRenderedProducts = [...new Set(promos.map(p => p.id))];
         grid.innerHTML = promos.map(prod => createCardHtml(prod)).join('');
+
+        // --- BLOQUE NOVEDADES (ÚLTIMOS 7 DÍAS) ---
+        const now = Date.now();
+        const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+        let novedades = available.filter(p => {
+            const fecha = Number(p.fechaCreacion) || 0;
+            const diff = now - fecha;
+            return fecha > 0 && diff <= sevenDaysMs && diff >= -86400000;
+        });
+        novedades.sort((a, b) => (Number(b.fechaCreacion) || 0) - (Number(a.fechaCreacion) || 0));
+
+        let novSection = $('novedades-section');
+        if (!novSection) {
+            novSection = document.createElement('div');
+            novSection.id = 'novedades-section';
+            grid.parentNode.appendChild(novSection);
+        }
+
+        if (novedades.length > 0) {
+            novSection.style.display = 'block';
+            novSection.innerHTML = `
+                <div class="promo-marquee-container" style="background:#0a0a0a; color:var(--neon-green); border-top:2px solid var(--neon-green); border-bottom:2px solid var(--neon-green); box-shadow:0 0 20px rgba(57, 255, 20, 0.25); margin-top:4rem; margin-bottom:1.5rem;">
+                    <div class="promo-marquee-track">
+                        <span>⚡ NOVEDADES DE LA SEMANA ⚡</span>
+                        <span>LO MÁS NUEVO EN TIENDA 👟</span>
+                        <span>⚡ RECIÉN LLEGADOS 🔥</span>
+                        <span>ÚLTIMOS LANZAMIENTOS 🚀</span>
+                        <span>⚡ NOVEDADES DE LA SEMANA ⚡</span>
+                        <span>LO MÁS NUEVO EN TIENDA 👟</span>
+                        <span>⚡ RECIÉN LLEGADOS 🔥</span>
+                        <span>ÚLTIMOS LANZAMIENTOS 🚀</span>
+                    </div>
+                </div>
+                <div style="text-align:center; margin-bottom:1.8rem;">
+                    <h2 style="font-family:'Bebas Neue', sans-serif; font-size:2.8rem; letter-spacing:2px; margin:0; color:#fff;">NOVEDADES</h2>
+                    <p style="color:var(--neon-green); font-size:0.95rem; margin:0.3rem 0 0; font-weight:600; letter-spacing:1px; text-transform:uppercase;">🔥 Recién subidos en los últimos 7 días</p>
+                </div>
+                <div class="product-grid">
+                    ${novedades.map(prod => createCardHtml(prod.enPromocion ? prod : {...prod, isNovedad: true})).join('')}
+                </div>
+            `;
+        } else {
+            novSection.innerHTML = '';
+            novSection.style.display = 'none';
+        }
+
+        window.currentRenderedProducts = [...new Set([
+            ...promos.map(p => p.id),
+            ...novedades.map(p => p.id)
+        ])];
         
     } else {
         // --- HOMBRES / MUJERES SUBPAGES LOGIC ---
