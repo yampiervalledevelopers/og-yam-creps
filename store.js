@@ -41,6 +41,19 @@ function initFirestore() {
         products = [];
         snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
         renderStore();
+
+        // Deep linking: ?p=ID o ?producto=ID para abrir el zapato compartido
+        if (!window.hasCheckedDeepLink && products.length > 0) {
+            window.hasCheckedDeepLink = true;
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetProdId = urlParams.get('p') || urlParams.get('producto');
+            if (targetProdId) {
+                setTimeout(() => {
+                    const found = products.find(p => p.id === targetProdId);
+                    if (found) openProductModal(targetProdId);
+                }, 150);
+            }
+        }
     }, err => console.error("Error cargando productos:", err));
 }
 
@@ -112,6 +125,7 @@ function createCardHtml(prod) {
     <div class="product-card" onclick="openProductModal('${prod.id}')">
         <div class="card-img-wrapper" style="position:relative;">
             ${badgeHtml}
+            <button class="card-share-btn" onclick="event.stopPropagation(); window.shareProduct('${prod.id}', 'native')" title="Compartir este par">🔗</button>
             ${fotosArray.length > 1 ? `
                 <button class="card-nav-btn left-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', -1, this)">&#10094;</button>
                 <button class="card-nav-btn right-btn" onclick="event.stopPropagation(); window.nextCardImg('${prod.id}', 1, this)">&#10095;</button>
@@ -525,6 +539,16 @@ window.openProductModal = id => {
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
     });
 
+    // Configurar botones de compartir en redes
+    const shareWa = $('share-wa-btn');
+    if (shareWa) shareWa.onclick = () => window.shareProduct(prod.id, 'wa');
+    const shareFb = $('share-fb-btn');
+    if (shareFb) shareFb.onclick = () => window.shareProduct(prod.id, 'fb');
+    const shareCopy = $('share-copy-btn');
+    if (shareCopy) shareCopy.onclick = () => window.shareProduct(prod.id, 'copy');
+    const shareNative = $('share-native-btn');
+    if (shareNative) shareNative.onclick = () => window.shareProduct(prod.id, 'native');
+
     modal.classList.remove('hidden');
 };
 
@@ -867,4 +891,85 @@ function getSizeEquivalence(talla, genero) {
             default: return "";
         }
     }
+}
+
+// ==========================================
+// COMPARTIR EN REDES Y DEEP LINKING
+// ==========================================
+window.shareProduct = function(id, platform) {
+    const prod = products.find(p => p.id === id);
+    if (!prod) return;
+
+    let desc = prod.descuento || (prod.fakePromo ? 15 : 0);
+    let pVenta = prod.precioVenta || 0;
+    let isPromo = prod.enPromocion || prod.fakePromo;
+    let precioFinal = isPromo && prod.tipoPromocion !== '2x1' && prod.tipoPromocion !== 'freeshipping'
+        ? pVenta - (pVenta * desc / 100)
+        : pVenta;
+
+    // Enlace directo al zapato específico
+    const directUrl = `https://ogyamcreps.com/?p=${encodeURIComponent(prod.id)}`;
+    const shareTitle = `${prod.nombre} (${prod.marca}) — O'G YAM CREPS`;
+    const shareText = `¡Pilla estos tenis en O'G YAM CREPS! 🔥 ${prod.nombre} (${prod.marca}) por solo ${formatCOP(precioFinal)} en Medellín. Míralos aquí:`;
+
+    if (platform === 'wa') {
+        const waMsg = `${shareText}\n👉 ${directUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(waMsg)}`, '_blank');
+    } else if (platform === 'fb') {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(directUrl)}`, '_blank');
+    } else if (platform === 'copy') {
+        copyToClipboard(directUrl);
+    } else if (platform === 'native') {
+        if (navigator.share) {
+            navigator.share({
+                title: shareTitle,
+                text: shareText,
+                url: directUrl
+            }).catch(() => {});
+        } else {
+            copyToClipboard(directUrl);
+        }
+    }
+};
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('¡Enlace copiado al portapapeles! 📋');
+        }).catch(() => {
+            fallbackCopy(text);
+        });
+    } else {
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    const input = document.createElement('input');
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    try {
+        document.execCommand('copy');
+        showToast('¡Enlace copiado al portapapeles! 📋');
+    } catch (e) {
+        prompt('Copia este enlace directo:', text);
+    }
+    document.body.removeChild(input);
+}
+
+function showToast(msg) {
+    let toast = document.getElementById('toast-notification');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-notification';
+        toast.className = 'toast-notification';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2800);
 }

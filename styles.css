@@ -1071,3 +1071,144 @@ input, select, textarea { font-family: inherit; }
 #modal-price .price-container { margin-bottom: 1rem; }
 #modal-price .price-old-wrap { margin-bottom: 0.3rem; }
 #modal-price .price-new { font-size: 1.8rem; color: var(--neon-green); }
+
+/* ==========================================
+   SHARE BUTTONS & TOAST NOTIFICATION
+   ========================================== */
+.modal-share-section {
+    margin-top: 1.2rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.modal-share-title {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.share-buttons-grid {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.btn-share {
+    flex: 1;
+    min-width: 80px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.55rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: #181818;
+    color: #fff;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    user-select: none;
+}
+
+.btn-share:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.btn-share.share-wa {
+    background: #128c7e;
+    border-color: #25d366;
+}
+.btn-share.share-wa:hover {
+    background: #25d366;
+    color: #000;
+}
+
+.btn-share.share-fb {
+    background: #1877f2;
+    border-color: #1877f2;
+}
+.btn-share.share-fb:hover {
+    background: #0d65d9;
+}
+
+.btn-share.share-copy {
+    background: #222;
+    border-color: #444;
+}
+.btn-share.share-copy:hover {
+    border-color: var(--neon-green);
+    color: var(--neon-green);
+}
+
+.btn-share.share-native {
+    background: #242424;
+    border-color: rgba(255, 255, 255, 0.25);
+    color: var(--neon-green);
+}
+.btn-share.share-native:hover {
+    border-color: var(--neon-green);
+    background: #333;
+}
+
+/* NOTIFICACIÓN TOAST (ENLACE COPIADO) */
+.toast-notification {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #111;
+    color: var(--neon-green);
+    border: 1px solid var(--neon-green);
+    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
+    padding: 0.75rem 1.4rem;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    z-index: 99999;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+}
+.toast-notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+/* BOTÓN RÁPIDO COMPARTIR EN TARJETA */
+.card-share-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    z-index: 5;
+}
+.card-share-btn:hover {
+    background: var(--neon-green);
+    color: #000;
+    border-color: var(--neon-green);
+    transform: scale(1.1);
+}
