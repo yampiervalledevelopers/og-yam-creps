@@ -907,8 +907,8 @@ window.shareProduct = function(id, platform) {
         ? pVenta - (pVenta * desc / 100)
         : pVenta;
 
-    // Enlace directo al zapato específico
-    const directUrl = `https://ogyamcreps.com/?p=${encodeURIComponent(prod.id)}`;
+    // Enlace directo al zapato específico pasando por la Cloud Function para la imagen
+    const directUrl = `https://us-central1-og-yam-creps.cloudfunctions.net/share?p=${encodeURIComponent(prod.id)}`;
     const shareTitle = `${prod.nombre} (${prod.marca}) — O'G YAM CREPS`;
     const shareText = `¡Pilla estos tenis en O'G YAM CREPS! 🔥 ${prod.nombre} (${prod.marca}) por solo ${formatCOP(precioFinal)} en Medellín. Míralos aquí:`;
 
