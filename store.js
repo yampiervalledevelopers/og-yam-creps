@@ -47,10 +47,16 @@ function initFirestore() {
             window.hasCheckedDeepLink = true;
             const urlParams = new URLSearchParams(window.location.search);
             const targetProdId = urlParams.get('p') || urlParams.get('producto');
+            const targetFoto = parseInt(urlParams.get('f') || '0', 10) || 0;
             if (targetProdId) {
                 setTimeout(() => {
                     const found = products.find(p => p.id === targetProdId);
-                    if (found) openProductModal(targetProdId);
+                    if (found) {
+                        openProductModal(targetProdId);
+                        if (targetFoto > 0 && currentModalPhotos && targetFoto < currentModalPhotos.length) {
+                            changeModalImg(targetFoto);
+                        }
+                    }
                 }, 150);
             }
         }
@@ -535,7 +541,11 @@ window.openProductModal = id => {
     newBtn.addEventListener('click', () => {
         const selectedBtn = sizesContainer?.querySelector('.size-btn.selected');
         const size = selectedBtn ? selectedBtn.dataset.size : 'N/A';
-        const msg = `¡Hola! Me interesan los tenis ${window.waMsgType || ''}: *\n${prod.nombre}* (${prod.marca})\n👟 Talla: *${size}*\n💰 Precio: *${formatCOP(precioFinal)}*\n¿Están disponibles?`;
+        const fIdx = currentPhotoIndex || 0;
+        const totalFotos = currentModalPhotos ? currentModalPhotos.length : 0;
+        const modeloLine = totalFotos > 1 ? `\n🎨 Modelo: Foto ${fIdx + 1} de ${totalFotos}` : '';
+        const fotoLink = `https://us-central1-og-yam-creps.cloudfunctions.net/share?p=${encodeURIComponent(prod.id)}&f=${fIdx}`;
+        const msg = `¡Hola! Me interesan los tenis ${window.waMsgType || ''}: *\n${prod.nombre}* (${prod.marca})${modeloLine}\n👟 Talla: *${size}*\n💰 Precio: *${formatCOP(precioFinal)}*\n📸 Este es el que quiero 👇\n${fotoLink}\n¿Están disponibles?`;
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
     });
 
@@ -556,7 +566,8 @@ window.quickWhatsApp = (id, precioPromo) => {
     const prod = products.find(p => p.id === id);
     if (!prod) return;
     const sizes = Object.keys(prod.tallas || {}).filter(t => prod.tallas[t] > 0).join(', ');
-    const msg = `¡Hola! Me interesan los tenis en promoción: *${prod.nombre}* (${prod.marca})\nTallas que vi: ${sizes}\nPrecio Promo: *${formatCOP(precioPromo)}*\n¿Me podrías confirmar disponibilidad?`;
+    const fotoLink = `https://us-central1-og-yam-creps.cloudfunctions.net/share?p=${encodeURIComponent(prod.id)}&f=0`;
+    const msg = `¡Hola! Me interesan los tenis en promoción: *${prod.nombre}* (${prod.marca})\nTallas que vi: ${sizes}\nPrecio Promo: *${formatCOP(precioPromo)}*\n📸 ${fotoLink}\n¿Me podrías confirmar disponibilidad?`;
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
@@ -908,7 +919,8 @@ window.shareProduct = function(id, platform) {
         : pVenta;
 
     // Enlace directo al zapato específico pasando por la Cloud Function para la imagen
-    const directUrl = `https://us-central1-og-yam-creps.cloudfunctions.net/share?p=${encodeURIComponent(prod.id)}`;
+    const shareF = (window.currentProductId === prod.id) ? (currentPhotoIndex || 0) : 0;
+    const directUrl = `https://us-central1-og-yam-creps.cloudfunctions.net/share?p=${encodeURIComponent(prod.id)}&f=${shareF}`;
     const shareTitle = `${prod.nombre} (${prod.marca}) — O'G YAM CREPS`;
     const shareText = `¡Pilla estos tenis en O'G YAM CREPS! 🔥 ${prod.nombre} (${prod.marca}) por solo ${formatCOP(precioFinal)} en Medellín. Míralos aquí:`;
 
