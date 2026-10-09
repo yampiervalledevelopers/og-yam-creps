@@ -296,6 +296,13 @@ function initProductForm() {
 
     $('btn-cancel-edit')?.addEventListener('click', resetProductForm);
 
+    const searchInput = $('admin-prod-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderAdminProducts();
+        });
+    }
+
     $('form-producto').addEventListener('submit', async e => {
         e.preventDefault();
 
@@ -444,9 +451,30 @@ function renderAdminProducts() {
 
     let totalPairs = 0;
     products.forEach(p => totalPairs += getTotalStock(p));
-    if (countEl) countEl.textContent = `${totalPairs} pares`;
 
-    const sorted = [...products].sort((a, b) => (b.fechaCreacion || 0) - (a.fechaCreacion || 0));
+    const searchTerm = ($('admin-prod-search')?.value || '').trim().toLowerCase();
+    let filtered = products;
+
+    if (searchTerm) {
+        filtered = products.filter(p => {
+            const nom = (p.nombre || '').toLowerCase();
+            const mar = (p.marca || '').toLowerCase();
+            const col = (p.color || '').toLowerCase();
+            const ref = (p.codigo || '').toLowerCase();
+            const prov = (providers.find(pr => pr.id === p.proveedorId)?.nombre || '').toLowerCase();
+            return nom.includes(searchTerm) || mar.includes(searchTerm) || col.includes(searchTerm) || ref.includes(searchTerm) || prov.includes(searchTerm);
+        });
+        if (countEl) countEl.textContent = `${filtered.length} coincidentes (de ${totalPairs} pares)`;
+    } else {
+        if (countEl) countEl.textContent = `${totalPairs} pares`;
+    }
+
+    if (filtered.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No se encontraron productos que coincidan con la búsqueda. 🔍</p>';
+        return;
+    }
+
+    const sorted = [...filtered].sort((a, b) => (b.fechaCreacion || 0) - (a.fechaCreacion || 0));
     list.innerHTML = sorted.map(prod => {
         const prov = providers.find(p => p.id === prod.proveedorId);
         const provName = prov ? prov.nombre : 'Sin asignar';
