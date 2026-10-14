@@ -783,16 +783,33 @@ async function confirmSale() {
                 telLimpio = '57' + telLimpio;
             }
 
-            // Solo referencia, talla y foto directa (sin datos de origen ni de tienda)
             const refTexto = prod.codigo ? `Ref: *${prod.codigo}*` : `*${prod.nombre}*`;
-            const fotoUrl = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
-            const fotoTexto = fotoUrl ? `\n\n${fotoUrl}` : '';
+            
+            // Usar la antena Cloud Function (og:image) para forzar la tarjeta con vista previa en WhatsApp
+            const shareUrl = `https://us-central1-og-yam-creps.cloudfunctions.net/share?p=${encodeURIComponent(prod.id)}&f=0`;
+            const waMsg = `Buenas, para pedir:\n\n🔖 ${refTexto}\n📏 Talla: *${size}*\n\n${shareUrl}`;
 
-            const waMsg = `Buenas, para pedir:\n\n🔖 ${refTexto}\n📏 Talla: *${size}*${fotoTexto}`;
+            const fotoRaw = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
 
-            const pedirAlProv = confirm(`¿Deseas pedir este par al WhatsApp del proveedor (${prov.nombre})?`);
+            const pedirAlProv = confirm(`¿Deseas pedir este par al WhatsApp del proveedor (${prov.nombre})?\n\n(Nota: Si la foto no carga sola en WhatsApp, también la dejamos copiada para que solo le des Pegar).`);
             if (pedirAlProv) {
-                window.open(`https://api.whatsapp.com/send?phone=${telLimpio}&text=${encodeURIComponent(waMsg)}`, '_blank');
+                // Intentar copiar la imagen al portapapeles como respaldo
+                if (fotoRaw && navigator.clipboard) {
+                    fetch(fotoRaw)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const item = new ClipboardItem({ [blob.type || 'image/jpeg']: blob });
+                            return navigator.clipboard.write([item]);
+                        })
+                        .catch(() => {
+                            // Si falla por CORS o soporte, al menos el link con la antena ya va en el mensaje
+                        })
+                        .finally(() => {
+                            window.open(`https://api.whatsapp.com/send?phone=${telLimpio}&text=${encodeURIComponent(waMsg)}`, '_blank');
+                        });
+                } else {
+                    window.open(`https://api.whatsapp.com/send?phone=${telLimpio}&text=${encodeURIComponent(waMsg)}`, '_blank');
+                }
             }
         }
     } catch (e) { alert("Error: " + e.message); }
