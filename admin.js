@@ -783,13 +783,14 @@ async function confirmSale() {
                 telLimpio = '57' + telLimpio;
             }
 
-            const refTexto = prod.codigo ? `\n🔖 Ref: *${prod.codigo}*` : '';
+            // Solo referencia, talla y foto directa (sin datos de origen ni de tienda)
+            const refTexto = prod.codigo ? `Ref: *${prod.codigo}*` : `*${prod.nombre}*`;
             const fotoUrl = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
-            const fotoTexto = fotoUrl ? `\n📸 Foto:\n${fotoUrl}` : '';
+            const fotoTexto = fotoUrl ? `\n\n${fotoUrl}` : '';
 
-            const waMsg = `¡Hola ${prov.nombre}! Te hago el pedido de este par:\n\n👟 Modelo: *${prod.nombre}* (${prod.marca})${refTexto}\n📏 Talla: *${size}*\n📦 Origen: *${origen === 'bodega' ? 'Para reponer Bodega' : 'Bajo pedido cliente'}*${fotoTexto}\n\n¿Me confirmas disponibilidad y despacho por favor?`;
+            const waMsg = `Buenas, para pedir:\n\n🔖 ${refTexto}\n📏 Talla: *${size}*${fotoTexto}`;
 
-            const pedirAlProv = confirm(`¿Deseas enviar el pedido de este zapato al WhatsApp del proveedor (${prov.nombre})?`);
+            const pedirAlProv = confirm(`¿Deseas pedir este par al WhatsApp del proveedor (${prov.nombre})?`);
             if (pedirAlProv) {
                 window.open(`https://api.whatsapp.com/send?phone=${telLimpio}&text=${encodeURIComponent(waMsg)}`, '_blank');
             }
