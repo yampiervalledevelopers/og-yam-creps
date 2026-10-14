@@ -585,6 +585,23 @@ window.promptSell = id => {
     if (!prod) return;
     currentSoldProduct = prod;
     $('sell-product-name').textContent = `${prod.nombre} (${prod.marca})`;
+
+    // Actualizar datos del proveedor y precios en el modal
+    const prov = providers.find(p => p.id === prod.proveedorId);
+    if ($('sell-info-costo')) $('sell-info-costo').textContent = formatCOP(prod.costoProveedor || 0);
+    if ($('sell-info-pvp')) $('sell-info-pvp').textContent = formatCOP(prod.precioVenta || 0);
+    if ($('sell-info-prov')) $('sell-info-prov').textContent = prov ? prov.nombre : 'Sin asignar';
+
+    // Texto fantasma (placeholder) con el valor de la tienda
+    const precioFinalInput = $('sell-precio-final');
+    if (precioFinalInput) {
+        precioFinalInput.placeholder = `Tienda: ${formatCOP(prod.precioVenta || 0)}`;
+        precioFinalInput.value = ''; // Se deja vacío para que se vea el placeholder o el usuario ingrese otro valor
+    }
+    const costoEnvioInput = $('sell-costo-envio');
+    if (costoEnvioInput) {
+        costoEnvioInput.value = prod.costoEnvio || 0;
+    }
     
     // Convert legacy tallas to Proveedor if missing
     if (!prod.tallasBodega && !prod.tallasProveedor && prod.tallas) {
@@ -756,7 +773,27 @@ async function confirmSale() {
         if (document.getElementById('sell-cliente-info')) document.getElementById('sell-cliente-info').value = '';
         if ($('sell-credito-abono')) $('sell-credito-abono').value = '0';
         
+        // Notificar venta registrada
         alert(`¡Venta registrada (${metodo})!`);
+
+        // Si el proveedor tiene WhatsApp configurado y la venta o pedido requiere notificar al proveedor
+        if (prov && prov.telefono) {
+            let telLimpio = prov.telefono.toString().replace(/\D/g, '');
+            if (telLimpio.length === 10 && !telLimpio.startsWith('57')) {
+                telLimpio = '57' + telLimpio;
+            }
+
+            const refTexto = prod.codigo ? `\n🔖 Ref: *${prod.codigo}*` : '';
+            const fotoUrl = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
+            const fotoTexto = fotoUrl ? `\n📸 Foto:\n${fotoUrl}` : '';
+
+            const waMsg = `¡Hola ${prov.nombre}! Te hago el pedido de este par:\n\n👟 Modelo: *${prod.nombre}* (${prod.marca})${refTexto}\n📏 Talla: *${size}*\n📦 Origen: *${origen === 'bodega' ? 'Para reponer Bodega' : 'Bajo pedido cliente'}*${fotoTexto}\n\n¿Me confirmas disponibilidad y despacho por favor?`;
+
+            const pedirAlProv = confirm(`¿Deseas enviar el pedido de este zapato al WhatsApp del proveedor (${prov.nombre})?`);
+            if (pedirAlProv) {
+                window.open(`https://api.whatsapp.com/send?phone=${telLimpio}&text=${encodeURIComponent(waMsg)}`, '_blank');
+            }
+        }
     } catch (e) { alert("Error: " + e.message); }
 }
 

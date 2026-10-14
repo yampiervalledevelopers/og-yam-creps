@@ -392,6 +392,20 @@
             <button id="sell-modal-close" class="modal-close">&times;</button>
             <h3 style="color:var(--neon-green);">Registrar Venta</h3>
             <p id="sell-product-name" style="margin-bottom:1rem; font-weight:600;"></p>
+            <div id="sell-product-details-box" style="margin-bottom:1rem; padding:0.8rem; background:#181818; border-radius:var(--radius-sm); border:1px solid #333; display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; font-size:0.9rem;">
+                <div>
+                    <span style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">Costo Proveedor</span>
+                    <p id="sell-info-costo" style="font-weight:700; color:#ffb84d; margin-top:2px;">$0</p>
+                </div>
+                <div>
+                    <span style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">PVP Tienda</span>
+                    <p id="sell-info-pvp" style="font-weight:700; color:var(--neon-green); margin-top:2px;">$0</p>
+                </div>
+                <div style="grid-column: span 2; border-top:1px dashed #2a2a2a; padding-top:0.4rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:var(--text-muted); font-size:0.8rem;">📦 Proveedor:</span>
+                    <strong id="sell-info-prov" style="color:#fff; font-size:0.85rem;">-</strong>
+                </div>
+            </div>
             <div class="form-group" style="margin-bottom:1rem;">
                 <label>Origen de la Venta</label>
                 <select id="sell-origen-select" style="margin-top:0.5rem; width:100%; padding:0.8rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);">
