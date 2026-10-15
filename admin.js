@@ -1448,13 +1448,16 @@ window.renderCaja = function() {
         const color = t.tipo === 'ingreso' ? 'var(--neon-green)' : '#ff3333';
         const signo = t.tipo === 'ingreso' ? '+' : '-';
         
-        html += `<tr style="border-bottom:1px solid #222;">
-            <td style="padding:0.7rem;font-size:0.8rem;color:var(--text-muted);">${formatDate(t.fecha)}</td>
-            <td style="padding:0.7rem;font-weight:600;">${t.concepto}</td>
-            <td style="padding:0.7rem;color:${color};"><span class="badge" style="background:${color}22;color:${color}">${t.tipo.toUpperCase()}</span></td>
-            <td style="padding:0.7rem;color:${color};font-weight:bold;">${signo}${formatCOP(monto)}</td>
-            <td style="padding:0.7rem;text-align:center;">
-                <button onclick="deleteTransaccion('${t.id}')" style="background:none;border:none;color:#ff3333;cursor:pointer;font-size:1.1rem;" title="Eliminar Movimiento">❌</button>
+        const badgeBg = t.tipo === 'ingreso' ? 'rgba(0, 255, 136, 0.15)' : 'rgba(255, 51, 51, 0.15)';
+        html += `<tr style="border-bottom:1px solid #252525; transition:background 0.2s;" onmouseover="this.style.background='#1f1f1f'" onmouseout="this.style.background='transparent'">
+            <td style="padding:0.85rem; font-size:0.85rem; color:#aaa; white-space:nowrap;">${formatDate(t.fecha)}</td>
+            <td style="padding:0.85rem; font-weight:600; color:#fff; min-width:220px;">${t.concepto}</td>
+            <td style="padding:0.85rem; text-align:center; white-space:nowrap;">
+                <span style="background:${badgeBg}; color:${color}; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; border:1px solid ${color}44;">${t.tipo.toUpperCase()}</span>
+            </td>
+            <td style="padding:0.85rem; color:${color}; font-weight:800; text-align:right; white-space:nowrap; font-size:0.95rem;">${signo}${formatCOP(monto)}</td>
+            <td style="padding:0.85rem; text-align:center; white-space:nowrap;">
+                <button onclick="deleteTransaccion('${t.id}')" style="background:none; border:none; color:#ff5555; cursor:pointer; font-size:1.1rem; padding:4px 8px; border-radius:4px;" title="Eliminar Movimiento" onmouseover="this.style.background='#ff333333'" onmouseout="this.style.background='none'">🗑️</button>
             </td>
         </tr>`;
     });
@@ -1477,6 +1480,19 @@ window.deleteTransaccion = async function(id) {
     }
 };
 
+// Función para sincronizar la fecha/hora actual en formato datetime-local (YYYY-MM-DDTHH:mm)
+window.abrirModalTransaccion = function() {
+    const modal = $('transaccion-modal');
+    if (!modal) return;
+    const now = new Date();
+    // Ajustar a zona horaria local para input datetime-local
+    const offsetMs = now.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(now.getTime() - offsetMs).toISOString().slice(0, 16);
+    const inputFecha = $('trans-fecha');
+    if (inputFecha) inputFecha.value = localISOTime;
+    modal.classList.remove('hidden');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     $('transaccion-modal-close')?.addEventListener('click', () => $('transaccion-modal').classList.add('hidden'));
     
@@ -1485,13 +1501,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipo = $('trans-tipo').value;
         const concepto = $('trans-concepto').value.trim();
         const monto = parseInt($('trans-monto').value);
+        const fechaVal = $('trans-fecha')?.value;
+        
+        // Si el usuario editó la fecha y hora, convertir a timestamp; de lo contrario Date.now()
+        let timestampFecha = Date.now();
+        if (fechaVal) {
+            const parsed = new Date(fechaVal).getTime();
+            if (!isNaN(parsed)) timestampFecha = parsed;
+        }
         
         try {
             await db.collection('transacciones').add({
                 tipo,
                 concepto,
                 monto,
-                fecha: Date.now(),
+                fecha: timestampFecha,
                 manual: true
             });
             $('transaccion-modal').classList.add('hidden');

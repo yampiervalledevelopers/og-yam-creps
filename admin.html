@@ -369,17 +369,17 @@
             <div class="admin-card" style="margin-top:2rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
                     <h3>Historial de Movimientos</h3>
-                    <button class="btn-primary" onclick="$('transaccion-modal').classList.remove('hidden')">➕ Nuevo Movimiento Manual</button>
+                    <button class="btn-primary" onclick="abrirModalTransaccion()">➕ Nuevo Movimiento Manual</button>
                 </div>
-                <div class="table-responsive">
-                    <table class="admin-table">
-                        <thead>
+                <div style="width:100%; max-height:520px; overflow-x:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; border-radius:var(--radius-sm); border:1px solid #333; background:#141414;">
+                    <table class="admin-table" style="width:100%; min-width:600px; border-collapse:collapse; margin:0;">
+                        <thead style="position:sticky; top:0; background:#1c1c1c; z-index:2; box-shadow:0 2px 5px rgba(0,0,0,0.5);">
                             <tr>
-                                <th>Fecha</th>
-                                <th>Concepto</th>
-                                <th>Tipo</th>
-                                <th>Monto</th>
-                                <th>Acción</th>
+                                <th style="padding:0.9rem; text-align:left; font-size:0.85rem; color:var(--text-muted); border-bottom:2px solid #333;">FECHA / HORA</th>
+                                <th style="padding:0.9rem; text-align:left; font-size:0.85rem; color:var(--text-muted); border-bottom:2px solid #333;">CONCEPTO</th>
+                                <th style="padding:0.9rem; text-align:center; font-size:0.85rem; color:var(--text-muted); border-bottom:2px solid #333;">TIPO</th>
+                                <th style="padding:0.9rem; text-align:right; font-size:0.85rem; color:var(--text-muted); border-bottom:2px solid #333;">MONTO</th>
+                                <th style="padding:0.9rem; text-align:center; font-size:0.85rem; color:var(--text-muted); border-bottom:2px solid #333;">ACCIÓN</th>
                             </tr>
                         </thead>
                         <tbody id="caja-list"></tbody>
@@ -532,10 +532,14 @@
             <h2 style="margin-top:0; color:var(--neon-green);">Registrar Movimiento</h2>
             <form id="form-transaccion">
                 <div class="form-group">
+                    <label>Fecha y Hora del Movimiento</label>
+                    <input type="datetime-local" id="trans-fecha" required style="width:100%; padding:0.6rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);">
+                </div>
+                <div class="form-group">
                     <label>Tipo de Movimiento</label>
-                    <select id="trans-tipo" required>
-                        <option value="ingreso">Ingreso de Dinero (+)</option>
-                        <option value="egreso">Salida / Gasto (-)</option>
+                    <select id="trans-tipo" required style="width:100%; padding:0.6rem; background:#111; color:#fff; border:1px solid #333; border-radius:var(--radius-sm);">
+                        <option value="ingreso">🟢 Ingreso de Dinero (+)</option>
+                        <option value="egreso">🔴 Salida / Gasto (-)</option>
                     </select>
                 </div>
                 <div class="form-group">
