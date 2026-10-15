@@ -86,6 +86,9 @@
                 <button id="tab-ventas" class="admin-tab-btn">💰 Ventas</button>
                 <button id="tab-creditos" class="admin-tab-btn">💳 Créditos</button>
                 <button id="tab-caja" class="admin-tab-btn" style="color: #00e5ff;">💵 Caja</button>
+                <button id="tab-pedidos" class="admin-tab-btn" style="color: #ff9900; position:relative;">
+                    📥 Pedidos Web <span id="badge-pedidos-count" style="display:none; background:#ff3333; color:#fff; font-size:0.75rem; padding:2px 7px; border-radius:12px; margin-left:4px; font-weight:bold;">0</span>
+                </button>
             </div>
         </div>
 
@@ -382,6 +385,31 @@
                         <tbody id="caja-list"></tbody>
                     </table>
                 </div>
+            </div>
+        </section>
+
+        <!-- Sub-tab: Pedidos Web (Bandeja de Entrada) -->
+        <section id="admin-pedidos" class="admin-section hidden">
+            <div class="kpi-dashboard" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+                <div class="kpi-card" style="border-left:4px solid #ff9900;">
+                    <h4 style="color:var(--text-muted);">Pendientes por Despachar</h4>
+                    <p id="kpi-pedidos-pendientes" style="font-size:1.8rem; font-weight:800; color:#ff9900; margin-top:0.4rem;">0</p>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--neon-green);">
+                    <h4 style="color:var(--text-muted);">Despachados Total</h4>
+                    <p id="kpi-pedidos-despachados" style="font-size:1.8rem; font-weight:800; color:var(--neon-green); margin-top:0.4rem;">0</p>
+                </div>
+            </div>
+
+            <div class="admin-card list-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                    <h3>Bandeja de Pedidos Web</h3>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button type="button" class="btn-action active" id="btn-filtro-ped-pendientes" onclick="filtrarPedidos('pendiente')" style="padding:0.4rem 0.8rem; font-size:0.85rem;">Pendientes</button>
+                        <button type="button" class="btn-action" id="btn-filtro-ped-todos" onclick="filtrarPedidos('todos')" style="padding:0.4rem 0.8rem; font-size:0.85rem;">Todos</button>
+                    </div>
+                </div>
+                <div id="pedidos-web-list" class="list-container"></div>
             </div>
         </section>
     </main>

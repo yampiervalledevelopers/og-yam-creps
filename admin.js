@@ -24,8 +24,11 @@ let providers = [];
 let ventas = [];
 let creditos = [];
 let transacciones = [];
+let pedidos = [];
+let filtroPedidosActual = 'pendiente';
 let editingProductId = null;
 let currentSoldProduct = null;
+let currentDespachandoPedidoId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initAuth();
@@ -153,6 +156,12 @@ function listenData() {
         snap.forEach(doc => ventas.push({ id: doc.id, ...doc.data() }));
         renderSales();
         renderDashboard();
+    });
+
+    db.collection('pedidos').orderBy('fecha', 'desc').onSnapshot(snap => {
+        pedidos = [];
+        snap.forEach(doc => pedidos.push({ id: doc.id, ...doc.data() }));
+        renderPedidosWeb();
     });
 }
 
@@ -580,10 +589,14 @@ function initSellModal() {
     });
 }
 
-window.promptSell = id => {
+window.promptSell = (id, preselectedSize = null, pedidoId = null) => {
     const prod = products.find(p => p.id === id);
-    if (!prod) return;
+    if (!prod) {
+        alert('Producto no encontrado en inventario');
+        return;
+    }
     currentSoldProduct = prod;
+    currentDespachandoPedidoId = pedidoId;
     $('sell-product-name').textContent = `${prod.nombre} (${prod.marca})`;
 
     // Actualizar datos del proveedor y precios en el modal
@@ -634,6 +647,19 @@ window.promptSell = id => {
     const hasBodega = Object.values(prod.tallasBodega).some(q => q > 0);
     origenSelect.value = hasBodega ? 'bodega' : 'proveedor';
     updateSizeOptions();
+
+    // Si viene con talla preseleccionada de un pedido web
+    if (preselectedSize) {
+        // Verificar si la talla está en bodega o proveedor
+        if (prod.tallasBodega && prod.tallasBodega[preselectedSize] > 0) {
+            origenSelect.value = 'bodega';
+        } else if (prod.tallasProveedor && prod.tallasProveedor[preselectedSize] > 0) {
+            origenSelect.value = 'proveedor';
+        }
+        updateSizeOptions();
+        sizeSelect.value = preselectedSize;
+        sizeSelect.onchange({ target: sizeSelect });
+    }
 
     $('sell-modal').classList.remove('hidden');
 };
@@ -763,10 +789,20 @@ async function confirmSale() {
             });
         }
         
+        // Si venía de un pedido web, marcarlo como despachado
+        if (currentDespachandoPedidoId) {
+            batch.update(db.collection('pedidos').doc(currentDespachandoPedidoId), {
+                estado: 'despachado',
+                fechaDespacho: now,
+                ventaId: ventaRef.id
+            });
+        }
+
         await batch.commit();
 
         $('sell-modal').classList.add('hidden');
         currentSoldProduct = null;
+        currentDespachandoPedidoId = null;
         
         if ($('sell-cliente-nombre')) $('sell-cliente-nombre').value = '';
         if ($('sell-cliente-telefono')) $('sell-cliente-telefono').value = '';
@@ -1492,3 +1528,128 @@ function getSizeEquivalence(talla, genero) {
         }
     }
 }
+
+// ==========================================
+// BANDEJA DE PEDIDOS WEB
+// ==========================================
+window.filtrarPedidos = function(filtro) {
+    filtroPedidosActual = filtro;
+    const btnPend = $('btn-filtro-ped-pendientes');
+    const btnTodos = $('btn-filtro-ped-todos');
+    if (btnPend && btnTodos) {
+        if (filtro === 'pendiente') {
+            btnPend.classList.add('active');
+            btnTodos.classList.remove('active');
+        } else {
+            btnTodos.classList.add('active');
+            btnPend.classList.remove('active');
+        }
+    }
+    renderPedidosWeb();
+};
+
+window.renderPedidosWeb = function() {
+    const list = $('pedidos-web-list');
+    const badge = $('badge-pedidos-count');
+    const kpiPend = $('kpi-pedidos-pendientes');
+    const kpiDesp = $('kpi-pedidos-despachados');
+
+    const pendientes = pedidos.filter(p => p.estado === 'pendiente');
+    const despachados = pedidos.filter(p => p.estado === 'despachado');
+
+    if (badge) {
+        if (pendientes.length > 0) {
+            badge.textContent = pendientes.length;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    if (kpiPend) kpiPend.textContent = pendientes.length;
+    if (kpiDesp) kpiDesp.textContent = despachados.length;
+
+    if (!list) return;
+
+    let filtrados = pedidos;
+    if (filtroPedidosActual === 'pendiente') {
+        filtrados = pendientes;
+    }
+
+    if (filtrados.length === 0) {
+        list.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:2rem;">
+            ${filtroPedidosActual === 'pendiente' ? '¡Excelente! No hay pedidos web pendientes por despachar 🎉' : 'Sin pedidos web registrados aún.'}
+        </p>`;
+        return;
+    }
+
+    list.innerHTML = filtrados.map(ped => {
+        const esPendiente = ped.estado === 'pendiente';
+        const esDespachado = ped.estado === 'despachado';
+        
+        let fechaStr = 'Reciente';
+        if (ped.fecha) {
+            const d = new Date(ped.fecha);
+            fechaStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        let estadoBadge = '<span style="background:#ff9900; color:#000; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">PENDIENTE</span>';
+        if (esDespachado) {
+            estadoBadge = '<span style="background:var(--neon-green); color:#000; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">DESPACHADO</span>';
+        } else if (ped.estado === 'descartado') {
+            estadoBadge = '<span style="background:#555; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.75rem;">DESCARTADO</span>';
+        }
+
+        const foto = ped.foto || '';
+
+        return `<div class="list-item" style="flex-wrap:wrap; gap:0.8rem; border-left: 4px solid ${esPendiente ? '#ff9900' : (esDespachado ? 'var(--neon-green)' : '#555')};">
+            <div style="display:flex; gap:0.8rem; align-items:center; flex:1; min-width:200px;">
+                ${foto ? `<img src="${foto}" loading="lazy" style="width:55px;height:55px;object-fit:cover;border-radius:var(--radius-sm);" onerror="this.alt='👟';">` : `<div style="width:55px;height:55px;background:#222;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">👟</div>`}
+                <div class="list-item-info">
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                        <strong>${ped.nombreProducto}</strong>
+                        ${estadoBadge}
+                    </div>
+                    <span style="margin-top:2px; display:block; color:#aaa; font-size:0.85rem;">
+                        Talla: <strong style="color:#fff;">${ped.talla}</strong> · PVP: <strong style="color:var(--neon-green);">${formatCOP(ped.precio)}</strong> · 🕒 ${fechaStr}
+                    </span>
+                    ${ped.codigo ? `<span style="color:var(--neon-green); font-size:0.8rem;">Ref: [${ped.codigo}]</span>` : ''}
+                </div>
+            </div>
+            <div class="list-actions" style="display:flex; gap:0.5rem; align-items:center;">
+                ${esPendiente ? `
+                    <button class="btn-action sell" onclick="despacharPedidoWeb('${ped.id}', '${ped.productoId}', '${ped.talla}')" style="font-weight:bold; background:var(--neon-green); color:#000; padding:0.5rem 0.9rem;">
+                        🚀 Despachar
+                    </button>
+                    <button class="btn-action delete" onclick="descartarPedidoWeb('${ped.id}')" title="Descartar pedido" style="padding:0.5rem 0.7rem;">
+                        ❌
+                    </button>
+                ` : `
+                    <button class="btn-action delete" onclick="eliminarPedidoWeb('${ped.id}')" title="Eliminar registro" style="padding:0.4rem 0.6rem; font-size:0.8rem;">
+                        🗑️
+                    </button>
+                `}
+            </div>
+        </div>`;
+    }).join('');
+};
+
+window.despacharPedidoWeb = function(pedidoId, productoId, talla) {
+    promptSell(productoId, talla, pedidoId);
+};
+
+window.descartarPedidoWeb = async function(pedidoId) {
+    if (confirm('¿Descartar este pedido web? (Pasará a estado descartado)')) {
+        try {
+            await db.collection('pedidos').doc(pedidoId).update({ estado: 'descartado' });
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+};
+
+window.eliminarPedidoWeb = async function(pedidoId) {
+    if (confirm('¿Eliminar definitivamente este registro de pedido?')) {
+        try {
+            await db.collection('pedidos').doc(pedidoId).delete();
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+};
