@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es-CO">
 <head>
     <meta charset="UTF-8">
@@ -313,6 +313,22 @@
                     <div style="margin-bottom:1rem;">
                         <input type="text" id="admin-prod-search" placeholder="🔍 Buscar por nombre, marca, color o referencia..." style="width:100%; padding:0.75rem 1rem; border-radius:var(--radius-sm); border:1px solid #333; background:#181818; color:#fff; font-size:0.95rem; outline:none; transition:border-color 0.2s;">
                     </div>
+                    <style>
+                        .prov-chips-wrap { display:flex; flex-wrap:wrap; gap:0.45rem; margin:-0.25rem 0 1rem; align-items:center; }
+                        .prov-chips-label { font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); margin-right:0.2rem; }
+                        .prov-chip { display:inline-flex; align-items:center; gap:0.35rem; padding:0.32rem 0.75rem; border-radius:999px; border:1px solid #333; background:#161616; color:#bbb; font-size:0.8rem; font-weight:600; cursor:pointer; user-select:none; transition:all 0.18s ease; white-space:nowrap; font-family:inherit; line-height:1.2; -webkit-tap-highlight-color:transparent; }
+                        .prov-chip:hover { border-color:#555; color:#fff; }
+                        .prov-chip .prov-chip-count { font-size:0.7rem; padding:0 0.4rem; border-radius:999px; background:#262626; color:#888; transition:all 0.18s ease; }
+                        .prov-chip.is-on { border-color:var(--neon-green); color:var(--neon-green); background:rgba(0,255,136,0.08); box-shadow:0 0 8px rgba(0,255,136,0.35), inset 0 0 6px rgba(0,255,136,0.12); text-shadow:0 0 6px rgba(0,255,136,0.5); }
+                        .prov-chip.is-on .prov-chip-count { background:var(--neon-green); color:#000; text-shadow:none; }
+                        .prov-chip.prov-chip-clear { border-style:dashed; color:#ff6b6b; border-color:#ff6b6b55; background:transparent; }
+                        .prov-chip.prov-chip-clear:hover { background:rgba(255,80,80,0.08); border-color:#ff6b6b; }
+                        @media (max-width:600px) {
+                            .prov-chips-wrap { gap:0.4rem; }
+                            .prov-chip { font-size:0.78rem; padding:0.38rem 0.75rem; }
+                        }
+                    </style>
+                    <div id="admin-prov-chips" class="prov-chips-wrap"></div>
                     <div id="productos-list" class="list-container"></div>
                 </div>
             </div>

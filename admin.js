@@ -444,6 +444,59 @@ function resetProductForm() {
     });
 }
 
+// ===== Filtro de inventario por proveedor (chips multi-selección) =====
+const selectedProvFilters = new Set();
+
+function renderProvChips() {
+    const wrap = $('admin-prov-chips');
+    if (!wrap) return;
+
+    // Contar modelos por proveedor
+    const counts = {};
+    products.forEach(p => {
+        const key = p.proveedorId && providers.some(pr => pr.id === p.proveedorId) ? p.proveedorId : '__none__';
+        counts[key] = (counts[key] || 0) + 1;
+    });
+
+    // Limpiar selecciones de proveedores que ya no existen
+    [...selectedProvFilters].forEach(id => { if (!counts[id]) selectedProvFilters.delete(id); });
+
+    const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const chips = providers
+        .filter(pr => counts[pr.id])
+        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+        .map(pr => ({ id: pr.id, nombre: pr.nombre || 'Sin nombre', n: counts[pr.id] }));
+    if (counts['__none__']) chips.push({ id: '__none__', nombre: 'Sin asignar', n: counts['__none__'] });
+
+    if (chips.length === 0) { wrap.innerHTML = ''; return; }
+
+    let html = '<span class="prov-chips-label">Proveedor:</span>';
+    html += chips.map(c => {
+        const on = selectedProvFilters.has(c.id);
+        return `<button type="button" class="prov-chip${on ? ' is-on' : ''}" data-prov="${esc(c.id)}" aria-pressed="${on}">${on ? '✓ ' : ''}${esc(c.nombre)}<span class="prov-chip-count">${c.n}</span></button>`;
+    }).join('');
+    if (selectedProvFilters.size > 0) {
+        html += `<button type="button" class="prov-chip prov-chip-clear" data-prov-clear="1">✕ Limpiar</button>`;
+    }
+    wrap.innerHTML = html;
+
+    if (!wrap.dataset.bound) {
+        wrap.dataset.bound = '1';
+        wrap.addEventListener('click', e => {
+            const btn = e.target.closest('.prov-chip');
+            if (!btn) return;
+            if (btn.dataset.provClear) {
+                selectedProvFilters.clear();
+            } else {
+                const id = btn.dataset.prov;
+                if (selectedProvFilters.has(id)) selectedProvFilters.delete(id);
+                else selectedProvFilters.add(id);
+            }
+            renderAdminProducts();
+        });
+    }
+}
+
 function renderAdminProducts() {
     const loader = document.getElementById('admin-loader');
     if (loader) loader.style.display = 'none';
@@ -464,8 +517,17 @@ function renderAdminProducts() {
     const searchTerm = ($('admin-prod-search')?.value || '').trim().toLowerCase();
     let filtered = products;
 
+    // Filtro por proveedor (chips multi-selección)
+    renderProvChips();
+    if (selectedProvFilters.size > 0) {
+        filtered = filtered.filter(p => {
+            const key = p.proveedorId && providers.some(pr => pr.id === p.proveedorId) ? p.proveedorId : '__none__';
+            return selectedProvFilters.has(key);
+        });
+    }
+
     if (searchTerm) {
-        filtered = products.filter(p => {
+        filtered = filtered.filter(p => {
             const nom = (p.nombre || '').toLowerCase();
             const mar = (p.marca || '').toLowerCase();
             const col = (p.color || '').toLowerCase();
@@ -473,7 +535,12 @@ function renderAdminProducts() {
             const prov = (providers.find(pr => pr.id === p.proveedorId)?.nombre || '').toLowerCase();
             return nom.includes(searchTerm) || mar.includes(searchTerm) || col.includes(searchTerm) || ref.includes(searchTerm) || prov.includes(searchTerm);
         });
-        if (countEl) countEl.textContent = `${filtered.length} coincidentes (de ${totalPairs} pares)`;
+    }
+
+    if (searchTerm || selectedProvFilters.size > 0) {
+        let filteredPairs = 0;
+        filtered.forEach(p => filteredPairs += getTotalStock(p));
+        if (countEl) countEl.textContent = `${filtered.length} modelos · ${filteredPairs} pares (de ${totalPairs})`;
     } else {
         if (countEl) countEl.textContent = `${totalPairs} pares`;
     }
