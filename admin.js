@@ -887,25 +887,40 @@ async function confirmSale() {
             }
 
             const refTexto = prod.codigo ? `Ref: *${prod.codigo}*` : `*${prod.nombre}*`;
-            
-            // Usar la antena Cloud Function (og:image) para forzar la tarjeta con vista previa en WhatsApp
-            const shareUrl = `https://us-central1-og-yam-creps.cloudfunctions.net/share?p=${encodeURIComponent(prod.id)}&f=0`;
-            const waMsg = `Buenas, para pedir:\n\n🔖 ${refTexto}\n📏 Talla: *${size}*\n\n${shareUrl}`;
+            const waMsg = `Buenas, para pedir:\n\n🔖 ${refTexto}\n📏 Talla: *${size}*`;
 
             const fotoRaw = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
 
-            const pedirAlProv = confirm(`¿Deseas pedir este par al WhatsApp del proveedor (${prov.nombre})?\n\n(Nota: Si la foto no carga sola en WhatsApp, también la dejamos copiada para que solo le des Pegar).`);
+            const pedirAlProv = confirm(`¿Deseas pedir este par al WhatsApp del proveedor (${prov.nombre})?\n\n(La foto quedó copiada en el portapapeles: en WhatsApp solo dale Pegar).`);
             if (pedirAlProv) {
-                // Intentar copiar la imagen al portapapeles como respaldo
-                if (fotoRaw && navigator.clipboard) {
+                // Intentar copiar la imagen al portapapeles para pegarla en WhatsApp
+                if (fotoRaw && navigator.clipboard && window.ClipboardItem) {
                     fetch(fotoRaw)
                         .then(res => res.blob())
-                        .then(blob => {
-                            const item = new ClipboardItem({ [blob.type || 'image/jpeg']: blob });
-                            return navigator.clipboard.write([item]);
+                        .then(async blob => {
+                            try {
+                                const item = new ClipboardItem({ [blob.type || 'image/jpeg']: blob });
+                                await navigator.clipboard.write([item]);
+                            } catch (e) {
+                                // Fallback: si el navegador requiere image/png, convertir vía Canvas
+                                const img = new Image();
+                                img.crossOrigin = 'anonymous';
+                                const loaded = new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+                                img.src = URL.createObjectURL(blob);
+                                await loaded;
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.naturalWidth || img.width;
+                                canvas.height = img.naturalHeight || img.height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0);
+                                const pngBlob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+                                if (pngBlob) {
+                                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+                                }
+                            }
                         })
-                        .catch(() => {
-                            // Si falla por CORS o soporte, al menos el link con la antena ya va en el mensaje
+                        .catch(err => {
+                            console.warn("No se pudo copiar foto al portapapeles:", err);
                         })
                         .finally(() => {
                             window.open(`https://api.whatsapp.com/send?phone=${telLimpio}&text=${encodeURIComponent(waMsg)}`, '_blank');
