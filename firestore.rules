@@ -1,0 +1,142 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// Collection: productos
+// Document ID: auto-generated
+// Access: Public read; Authenticated admin full read/write.
+//
+// Collection: config
+// Document ID: 'store' (and any other admin config docs)
+// Access: Public read on 'store'; Authenticated admin full read/write.
+//
+// Collection: pedidos
+// Document ID: auto-generated
+// Fields (on public create):
+//   - productoId: string (required, max 200 chars)
+//   - nombreProducto: string (required, max 500 chars)
+//   - marca: string (required, max 200 chars)
+//   - codigo: string (required, max 200 chars)
+//   - talla: string (required, max 200 chars)
+//   - precio: number (required, >= 0)
+//   - foto: string (required, max 500000 chars to support URLs or base64 data)
+//   - fecha: number (required, > 0)
+//   - estado: string (required, must be 'pendiente' on public create)
+// Access: Public create only (validated); Authenticated admin full read/write.
+//
+// Collections: proveedores, ventas, creditos, transacciones
+// Document ID: auto-generated
+// Access: Authenticated admin full read/write only.
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the user is an authenticated administrator
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Validate required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate that the document contains only the allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate string length
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    // Validate public order creation from store.js
+    function isValidPublicPedido() {
+      let allowedFields = [
+        'productoId',
+        'nombreProducto',
+        'marca',
+        'codigo',
+        'talla',
+        'precio',
+        'foto',
+        'fecha',
+        'estado'
+      ];
+      return hasRequiredFields(allowedFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        validStringLength('productoId', 1, 200) &&
+        validStringLength('nombreProducto', 1, 500) &&
+        validStringLength('marca', 0, 200) &&
+        validStringLength('codigo', 0, 200) &&
+        validStringLength('talla', 1, 200) &&
+        request.resource.data.precio is number &&
+        request.resource.data.precio >= 0 &&
+        validStringLength('foto', 0, 500000) &&
+        request.resource.data.fecha is number &&
+        request.resource.data.fecha > 0 &&
+        request.resource.data.estado == 'pendiente';
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // Public catalog products: public can read, admin has full access
+    match /productos/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Store configuration: public can read config/store, admin has full access
+    match /config/{docId} {
+      allow read: if docId == 'store' || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Customer orders via WhatsApp: public can only create valid pending orders, admin has full access
+    match /pedidos/{docId} {
+      allow create: if isAdmin() || isValidPublicPedido();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Admin-only collections
+    match /proveedores/{docId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /ventas/{docId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /creditos/{docId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /transacciones/{docId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Default deny for all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
