@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Verificación y Pagaré Digital — O'G YAM CREPS</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/jpeg" href="logo.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --card-bg: #141414;
+            --neon-green: #00ff88;
+            --text-main: #ffffff;
+            --text-muted: #999999;
+            --border-color: #2a2a2a;
+            --radius: 12px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.5;
+            padding-bottom: 3rem;
+        }
+        .header {
+            background: #111;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .header-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        .header-brand img {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-green);
+            object-fit: cover;
+        }
+        .header-brand h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.7rem;
+            letter-spacing: 1.5px;
+            color: var(--neon-green);
+        }
+        .container {
+            max-width: 580px;
+            margin: 1.2rem auto;
+            padding: 0 1rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            margin-bottom: 1.2rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--neon-green);
+            margin-bottom: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid #222;
+            padding-bottom: 0.6rem;
+        }
+        .summary-box {
+            background: linear-gradient(145deg, #181818, #101010);
+            border: 1px solid rgba(0, 255, 136, 0.35);
+            border-radius: var(--radius);
+            padding: 1.1rem;
+            margin-bottom: 1.2rem;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+        .summary-item span {
+            display: block;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+        .summary-item strong {
+            font-size: 1rem;
+            color: #fff;
+        }
+        .badge-mode {
+            display: inline-block;
+            padding: 0.25rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: rgba(0, 255, 136, 0.14);
+            color: var(--neon-green);
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            margin-bottom: 0.5rem;
+        }
+        .form-group {
+            margin-bottom: 0.95rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.83rem;
+            font-weight: 600;
+            color: #ddd;
+            margin-bottom: 0.35rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem 0.9rem;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #0d0d0d;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--neon-green);
+        }
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        @media (max-width: 480px) {
+            .row-2 { grid-template-columns: 1fr; }
+        }
+        .photo-upload-box {
+            border: 1.5px dashed #3a3a3a;
+            border-radius: 10px;
+            padding: 0.9rem;
+            text-align: center;
+            background: #101010;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: block;
+        }
+        .photo-upload-box:hover, .photo-upload-box.loaded {
+            border-color: var(--neon-green);
+            background: rgba(0, 255, 136, 0.05);
+        }
+        .photo-preview {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+            margin-top: 0.6rem;
+            display: none;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid #333;
+        }
+        .legal-box {
+            background: #0e0e0e;
+            border: 1px solid #292929;
+            border-radius: 8px;
+            padding: 0.9rem;
+            font-size: 0.8rem;
+            color: #bbb;
+            max-height: 190px;
+            overflow-y: auto;
+            margin-bottom: 0.9rem;
+        }
+        .legal-box p { margin-bottom: 0.55rem; }
+        .canvas-wrap {
+            background: #fff;
+            border: 2px solid var(--neon-green);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            touch-action: none;
+        }
+        #signature-pad {
+            width: 100%;
+            height: 180px;
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 10px;
+            border: none;
+            background: var(--neon-green);
+            color: #000;
+            font-weight: 800;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 0 18px rgba(0, 255, 136, 0.35);
+        }
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-clear-sig {
+            background: #222;
+            color: #ff6b6b;
+            border: 1px solid #444;
+            padding: 0.4rem 0.85rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .success-screen {
+            display: none;
+            text-align: center;
+            padding: 2rem 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-brand">
+            <img src="logo.jpg" alt="O'G YAM CREPS">
+            <h1>O'G YAM CREPS — RESPALDO DE CRÉDITO</h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Resumen del Crédito -->
+        <div class="summary-box" id="summary-box">
+            <span class="badge-mode" id="summary-modalidad">🛡️ CRÉDITO / PLAN SEPARE</span>
+            <h2 id="summary-producto" style="font-size:1.2rem; color:#fff;">Acuerdo de Pago de Calzado</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span>Valor Total</span>
+                    <strong id="summary-total">$0</strong>
+                </div>
+                <div class="summary-item">
+                    <span>Abono Inicial</span>
+                    <strong id="summary-abono" style="color:var(--neon-green);">$0</strong>
+                </div>
+                <div class="summary-item">
+                    <span>Saldo a Financiar</span>
+                    <strong id="summary-saldo" style="color:#ffb84d;">$0</strong>
+                </div>
+                <div class="summary-item">
+                    <span>Plan de Cuotas</span>
+                    <strong id="summary-cuotas">-</strong>
+                </div>
+            </div>
+        </div>
+
+        <form id="form-verificacion">
+            <!-- PASO 1: IDENTIDAD Y DIRECCIÓN -->
+            <div class="card">
+                <div class="card-title">1️⃣ Identidad y Dirección de Entrega</div>
+                <div class="form-group">
+                    <label>Nombre Completo (Como aparece en la cédula) *</label>
+                    <input type="text" id="verif-nombre" required placeholder="Ej: Andrés Felipe Gómez">
+                </div>
+                <div class="row-2">
+                    <div class="form-group">
+                        <label>Número de Cédula (CC) *</label>
+                        <input type="text" id="verif-cedula" required placeholder="Ej: 1037654321" inputmode="numeric">
+                    </div>
+                    <div class="form-group">
+                        <label>Tu WhatsApp Activo *</label>
+                        <input type="tel" id="verif-telefono" required placeholder="Ej: 3001234567" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="row-2">
+                    <div class="form-group">
+                        <label>Ciudad y Barrio *</label>
+                        <input type="text" id="verif-ciudad" required placeholder="Ej: Medellín - Belén">
+                    </div>
+                    <div class="form-group">
+                        <label>Dirección Exacta (con apto/interior) *</label>
+                        <input type="text" id="verif-direccion" required placeholder="Ej: Calle 30 # 70-15 Apto 201">
+                    </div>
+                </div>
+
+                <div class="row-2" style="margin-top:0.5rem;">
+                    <div>
+                        <label class="photo-upload-box" id="box-foto-cedula">
+                            <span style="font-size:1.4rem;">🪪</span>
+                            <div style="font-size:0.82rem; font-weight:700; color:#fff; margin-top:0.2rem;">Foto Cédula (Frente) *</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted);" id="status-foto-cedula">Toca para tomar o subir foto</div>
+                            <input type="file" id="input-foto-cedula" accept="image/*" style="display:none;">
+                            <img id="prev-foto-cedula" class="photo-preview" alt="Vista previa cédula">
+                        </label>
+                    </div>
+                    <div>
+                        <label class="photo-upload-box" id="box-foto-selfie">
+                            <span style="font-size:1.4rem;">🤳</span>
+                            <div style="font-size:0.82rem; font-weight:700; color:#fff; margin-top:0.2rem;">Selfie Rostro / Reverso *</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted);" id="status-foto-selfie">Toca para tomar o subir foto</div>
+                            <input type="file" id="input-foto-selfie" accept="image/*" style="display:none;">
+                            <img id="prev-foto-selfie" class="photo-preview" alt="Vista previa selfie">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASO 2: 2 REFERENCIAS FAMILIARES / LABORALES -->
+            <div class="card">
+                <div class="card-title">2️⃣ Dos Contactos de Respaldo (Referencias)</div>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.9rem;">
+                    Registra 2 familiares o contactos laborales reales. Pueden ser verificados antes del despacho.
+                </p>
+
+                <div style="padding:0.85rem; background:#101010; border:1px solid #262626; border-radius:8px; margin-bottom:0.85rem;">
+                    <strong style="font-size:0.8rem; color:var(--neon-green); display:block; margin-bottom:0.5rem;">Contacto de Respaldo #1 (Familiar Directo)</strong>
+                    <div class="form-group">
+                        <label>Nombre Completo *</label>
+                        <input type="text" id="ref1-nombre" required placeholder="Ej: María Elena Gómez">
+                    </div>
+                    <div class="row-2">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Parentesco *</label>
+                            <select id="ref1-parentesco" required>
+                                <option value="Madre / Padre">Madre / Padre</option>
+                                <option value="Esposo(a) / Pareja">Esposo(a) / Pareja</option>
+                                <option value="Hermano(a)">Hermano(a)</option>
+                                <option value="Hijo(a)">Hijo(a)</option>
+                                <option value="Tío(a) / Primo(a)">Tío(a) / Primo(a)</option>
+                                <option value="Jefe / Trabajo">Jefe / Trabajo</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>WhatsApp / Celular *</label>
+                            <input type="tel" id="ref1-telefono" required placeholder="3000000000" inputmode="numeric">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding:0.85rem; background:#101010; border:1px solid #262626; border-radius:8px;">
+                    <strong style="font-size:0.8rem; color:var(--neon-green); display:block; margin-bottom:0.5rem;">Contacto de Respaldo #2 (Familiar o Laboral)</strong>
+                    <div class="form-group">
+                        <label>Nombre Completo *</label>
+                        <input type="text" id="ref2-nombre" required placeholder="Ej: Carlos Andrés Pérez">
+                    </div>
+                    <div class="row-2">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Parentesco / Vínculo *</label>
+                            <select id="ref2-parentesco" required>
+                                <option value="Hermano(a)">Hermano(a)</option>
+                                <option value="Madre / Padre">Madre / Padre</option>
+                                <option value="Esposo(a) / Pareja">Esposo(a) / Pareja</option>
+                                <option value="Jefe / Compañero de Trabajo">Jefe / Compañero de Trabajo</option>
+                                <option value="Familiar">Familiar</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>WhatsApp / Celular *</label>
+                            <input type="tel" id="ref2-telefono" required placeholder="3100000000" inputmode="numeric">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASO 3: PAGARÉ Y FIRMA DIGITAL -->
+            <div class="card">
+                <div class="card-title">3️⃣ Pagaré Digital y Firma en Pantalla</div>
+                <div class="legal-box">
+                    <p><strong>COMPROMISO DE PAGO Y PAGARÉ SIMPLIFICADO — O'G YAM CREPS:</strong></p>
+                    <p>1. Declaro que los datos de identidad, dirección y referencias suministrados en este formulario son reales y verificables.</p>
+                    <p>2. Me comprometo a pagar cumplidamente las cuotas acordadas a favor de <strong>O'G YAM CREPS</strong> en las fechas pactadas.</p>
+                    <p>3. <strong>Condición de Plan Separe / Reserva:</strong> En modalidad Plan Separe, el calzado se despacha una vez los abonos alcancen el porcentaje de equilibrio acordado. Si el comprador desiste o abandona los pagos por más de 30 días calendario, los abonos realizados no son reembolsables en dinero efectivo y se aplicará un descuento del 30% por costos operativos y de reserva de inventario.</p>
+                    <p>4. <strong>Mora y Autorización de Cobro a Referencias:</strong> En caso de retraso en las cuotas pactadas, se causará un recargo administrativo por mora de $5.000 COP por cada día de atraso. Autorizo expresamente a O'G YAM CREPS a contactar a las referencias registradas en este documento en caso de incumplimiento o falta de comunicación.</p>
+                </div>
+
+                <label style="display:flex; align-items:flex-start; gap:0.6rem; font-size:0.84rem; margin-bottom:1rem; cursor:pointer;">
+                    <input type="checkbox" id="verif-acepta" required style="margin-top:0.2rem; width:18px; height:18px; accent-color:var(--neon-green);">
+                    <span>He leído y acepto las condiciones del crédito/plan separe, el pagaré digital y autorizo la verificación de mis referencias. *</span>
+                </label>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem;">
+                    <label style="font-size:0.85rem; font-weight:700; color:#fff;">✍️ Firma aquí con tu dedo *</label>
+                    <button type="button" class="btn-clear-sig" id="btn-clear-sig">Borrar Firma</button>
+                </div>
+                <div class="canvas-wrap">
+                    <canvas id="signature-pad"></canvas>
+                </div>
+                <p style="font-size:0.74rem; color:var(--text-muted); margin-top:0.4rem; text-align:center;">
+                    Tu firma digital queda estampada con fecha, hora y número de documento.
+                </p>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btn-submit-verif">✅ FIRMAR Y ENVIAR VERIFICACIÓN</button>
+        </form>
+
+        <!-- Pantalla de Éxito -->
+        <div class="card success-screen" id="success-screen">
+            <div style="font-size:3.2rem; margin-bottom:0.6rem;">🛡️✅</div>
+            <h2 style="color:var(--neon-green); margin-bottom:0.5rem;">¡Pagaré y Verificación Registrados!</h2>
+            <p style="color:#ccc; font-size:0.92rem; margin-bottom:1.4rem;">
+                Tus datos y tu firma digital ya quedaron guardados en el sistema de <strong>O'G YAM CREPS</strong>. Toca el botón de abajo para avisarnos por WhatsApp y continuar con tu pedido:
+            </p>
+            <a id="btn-wa-confirm" href="#" target="_blank" class="btn-submit" style="display:inline-block; text-decoration:none; background:#25D366; color:#000;">
+                📲 Confirmar en WhatsApp Ahora
+            </a>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0aguCa2fPrnOfheOrZV1oQe_1wQDOr50",
+            authDomain: "og-yam-creps.firebaseapp.com",
+            projectId: "og-yam-creps",
+            storageBucket: "og-yam-creps.firebasestorage.app",
+            messagingSenderId: "427327061733",
+            appId: "1:427327061733:web:a946d60638411e63831e0c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const params = new URLSearchParams(window.location.search);
+        const creditoId = params.get('id') || 'manual_' + Date.now();
+        const paramNombre = params.get('n') || '';
+        const paramTel = params.get('t') || '';
+        const paramProd = params.get('p') || 'Calzado O\'G YAM CREPS';
+        const paramTotal = parseFloat(params.get('m')) || 0;
+        const paramAbono = parseFloat(params.get('a')) || 0;
+        const paramSaldo = parseFloat(params.get('s')) || Math.max(0, paramTotal - paramAbono);
+        const paramCuotas = params.get('c') || '1';
+        const paramFrec = params.get('f') || 'Quincenal';
+        const paramMod = params.get('mod') || 'blindado';
+
+        const formatCOP = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CO');
+
+        document.getElementById('summary-producto').textContent = paramProd;
+        document.getElementById('summary-total').textContent = formatCOP(paramTotal);
+        document.getElementById('summary-abono').textContent = formatCOP(paramAbono);
+        document.getElementById('summary-saldo').textContent = formatCOP(paramSaldo);
+        document.getElementById('summary-cuotas').textContent = `${paramCuotas} cuota(s) (${paramFrec})`;
+
+        const modBadge = document.getElementById('summary-modalidad');
+        if (paramMod === 'separe') {
+            modBadge.textContent = '🔒 PLAN SEPARE 60/40';
+        } else if (paramMod === 'blindado') {
+            modBadge.textContent = '🛡️ CRÉDITO CON INICIAL BLINDADA';
+        } else {
+            modBadge.textContent = '💳 CRÉDITO O\'G YAM CREPS';
+        }
+
+        if (paramNombre) document.getElementById('verif-nombre').value = paramNombre;
+        if (paramTel) document.getElementById('verif-telefono').value = paramTel;
+
+        // Compresión ligera de fotos para caber holgadamente en Firestore sin requerir permisos de Storage público
+        let fotoCedulaData = '';
+        let fotoSelfieData = '';
+
+        function compressFile(file, maxW = 520, quality = 0.58) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
+                        const c = document.createElement('canvas');
+                        c.width = w; c.height = h;
+                        const ctx = c.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(c.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        document.getElementById('input-foto-cedula').addEventListener('change', async e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('status-foto-cedula').textContent = 'Procesando...';
+            fotoCedulaData = await compressFile(file);
+            const prev = document.getElementById('prev-foto-cedula');
+            prev.src = fotoCedulaData;
+            prev.style.display = 'block';
+            document.getElementById('box-foto-cedula').classList.add('loaded');
+            document.getElementById('status-foto-cedula').textContent = '✅ Cédula cargada';
+        });
+
+        document.getElementById('input-foto-selfie').addEventListener('change', async e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('status-foto-selfie').textContent = 'Procesando...';
+            fotoSelfieData = await compressFile(file);
+            const prev = document.getElementById('prev-foto-selfie');
+            prev.src = fotoSelfieData;
+            prev.style.display = 'block';
+            document.getElementById('box-foto-selfie').classList.add('loaded');
+            document.getElementById('status-foto-selfie').textContent = '✅ Foto cargada';
+        });
+
+        // Firma en Canvas
+        const canvas = document.getElementById('signature-pad');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let hasSigned = false;
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2.6;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+        window.addEventListener('load', resizeCanvas);
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+        }
+
+        canvas.addEventListener('mousedown', e => { drawing = true; hasSigned = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+        canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+        window.addEventListener('mouseup', () => { drawing = false; });
+
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; hasSigned = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+        canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }, { passive: false });
+        canvas.addEventListener('touchend', () => { drawing = false; });
+
+        document.getElementById('btn-clear-sig').addEventListener('click', () => {
+            resizeCanvas();
+            hasSigned = false;
+        });
+
+        document.getElementById('form-verificacion').addEventListener('submit', async e => {
+            e.preventDefault();
+            if (!fotoCedulaData || !fotoSelfieData) {
+                alert('Por favor sube la foto de tu Cédula y tu Selfie para continuar.');
+                return;
+            }
+            if (!hasSigned) {
+                alert('Por favor realiza tu firma con el dedo en el recuadro blanco.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-verif');
+            btn.disabled = true;
+            btn.textContent = 'Guardando pagaré y verificación...';
+
+            const payload = {
+                creditoId: String(creditoId),
+                clienteNombre: document.getElementById('verif-nombre').value.trim(),
+                clienteCedula: document.getElementById('verif-cedula').value.trim(),
+                clienteTelefono: document.getElementById('verif-telefono').value.trim(),
+                clienteCiudad: document.getElementById('verif-ciudad').value.trim(),
+                clienteDireccion: document.getElementById('verif-direccion').value.trim(),
+                ref1Nombre: document.getElementById('ref1-nombre').value.trim(),
+                ref1Parentesco: document.getElementById('ref1-parentesco').value,
+                ref1Telefono: document.getElementById('ref1-telefono').value.trim(),
+                ref2Nombre: document.getElementById('ref2-nombre').value.trim(),
+                ref2Parentesco: document.getElementById('ref2-parentesco').value,
+                ref2Telefono: document.getElementById('ref2-telefono').value.trim(),
+                fotoCedula: fotoCedulaData,
+                fotoSelfie: fotoSelfieData,
+                firmaDataUrl: canvas.toDataURL('image/jpeg', 0.7),
+                aceptaTerminos: true,
+                fechaFirma: Date.now(),
+                userAgent: (navigator.userAgent || '').slice(0, 450)
+            };
+
+            try {
+                await db.collection('verificaciones_credito').add(payload);
+                document.getElementById('form-verificacion').style.display = 'none';
+                const successEl = document.getElementById('success-screen');
+                successEl.style.display = 'block';
+                const waText = `¡Hola O'G YAM CREPS! 🛡️✅ Ya firmé mi Pagaré Digital y subí mi verificación con mis 2 referencias para:\n\n👟 *${paramProd}*\n🪪 C.C. *${payload.clienteCedula}*\n👤 *${payload.clienteNombre}*\n\n¡Quedo atento(a)!`;
+                document.getElementById('btn-wa-confirm').href = `https://wa.me/573128663161?text=${encodeURIComponent(waText)}`;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (err) {
+                alert('Error al guardar la verificación: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = '✅ FIRMAR Y ENVIAR VERIFICACIÓN';
+            }
+        });
+    </script>
+</body>
+</html>

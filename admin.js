@@ -25,6 +25,7 @@ let ventas = [];
 let creditos = [];
 let transacciones = [];
 let pedidos = [];
+let verificacionesCredito = [];
 let filtroPedidosActual = 'pendiente';
 let editingProductId = null;
 let currentSoldProduct = null;
@@ -163,6 +164,13 @@ function listenData() {
         snap.forEach(doc => pedidos.push({ id: doc.id, ...doc.data() }));
         renderPedidosWeb();
     });
+
+    db.collection('verificaciones_credito').onSnapshot(snap => {
+        verificacionesCredito = [];
+        snap.forEach(doc => verificacionesCredito.push({ id: doc.id, ...doc.data() }));
+        verificacionesCredito.sort((a, b) => (b.fechaFirma || 0) - (a.fechaFirma || 0));
+        if (typeof renderCreditos === 'function') renderCreditos();
+    }, err => { console.warn('Error cargando verificaciones_credito:', err); });
 }
 
 // ==========================================
@@ -642,6 +650,49 @@ window.deleteProduct = async id => {
 // ==========================================
 // VENTAS
 // ==========================================
+function updateCreditShieldUI() {
+    if (!currentSoldProduct) return;
+    const costoProv = currentSoldProduct.costoProveedor || 0;
+    const envioVal = parseFloat($('sell-costo-envio')?.value);
+    const costoEnvio = !isNaN(envioVal) ? envioVal : (currentSoldProduct.costoEnvio || 0);
+    const puntoEquilibrio = costoProv + costoEnvio;
+
+    const pFinalVal = parseFloat($('sell-precio-final')?.value);
+    const pVenta = !isNaN(pFinalVal) ? pFinalVal : (currentSoldProduct.precioVenta || 0);
+    const meta60 = Math.round(pVenta * 0.6);
+
+    if ($('sell-shield-equilibrio')) {
+        $('sell-shield-equilibrio').textContent = formatCOP(puntoEquilibrio);
+    }
+
+    const modalidad = $('sell-credito-modalidad')?.value || 'blindado';
+    const abono = parseFloat($('sell-credito-abono')?.value) || 0;
+    const statusEl = $('sell-shield-status');
+    if (!statusEl) return;
+
+    if (modalidad === 'blindado') {
+        if (abono >= puntoEquilibrio && puntoEquilibrio > 0) {
+            statusEl.style.background = 'rgba(0, 255, 136, 0.12)';
+            statusEl.style.color = 'var(--neon-green)';
+            statusEl.innerHTML = `✅ <strong>¡100% Blindado!</strong> La inicial (${formatCOP(abono)}) cubre todo el costo del proveedor (${formatCOP(puntoEquilibrio)}). Riesgo de pérdida = $0.`;
+        } else {
+            const falta = Math.max(0, puntoEquilibrio - abono);
+            statusEl.style.background = 'rgba(255, 170, 0, 0.14)';
+            statusEl.style.color = '#ffaa00';
+            statusEl.innerHTML = `⚠️ Faltan <strong>${formatCOP(falta)}</strong> en la inicial para cubrir el costo (${formatCOP(puntoEquilibrio)}). Toca "⚡ Poner Inicial Blindada" o usa Plan Separe.`;
+        }
+    } else if (modalidad === 'separe') {
+        const metaDespacho = Math.max(puntoEquilibrio, meta60);
+        statusEl.style.background = 'rgba(0, 229, 255, 0.12)';
+        statusEl.style.color = '#00e5ff';
+        statusEl.innerHTML = `🔒 <strong>Plan Separe Activo:</strong> El par queda reservado y <strong>NO se despacha</strong> hasta que el cliente complete mínimo <strong>${formatCOP(metaDespacho)}</strong> (60% / Equilibrio).`;
+    } else {
+        statusEl.style.background = '#1b1b1b';
+        statusEl.style.color = '#bbb';
+        statusEl.innerHTML = `🤝 Crédito flexible para cliente de confianza. Punto de equilibrio: ${formatCOP(puntoEquilibrio)}.`;
+    }
+}
+
 function initSellModal() {
     $('sell-modal-close')?.addEventListener('click', () => $('sell-modal').classList.add('hidden'));
     $('sell-modal')?.addEventListener('click', e => { if (e.target === $('sell-modal')) $('sell-modal').classList.add('hidden'); });
@@ -650,10 +701,54 @@ function initSellModal() {
         const isCredito = e.target.value === 'credito';
         const fields = $('sell-credito-fields');
         if (fields) {
-            if (isCredito) fields.classList.remove('hidden');
-            else fields.classList.add('hidden');
+            if (isCredito) {
+                fields.classList.remove('hidden');
+                updateCreditShieldUI();
+            } else {
+                fields.classList.add('hidden');
+            }
         }
     });
+
+    $('sell-credito-modalidad')?.addEventListener('change', () => {
+        if (!currentSoldProduct) return;
+        const mod = $('sell-credito-modalidad').value;
+        const costoProv = currentSoldProduct.costoProveedor || 0;
+        const envioVal = parseFloat($('sell-costo-envio')?.value);
+        const costoEnvio = !isNaN(envioVal) ? envioVal : (currentSoldProduct.costoEnvio || 0);
+        if (mod === 'blindado' && (parseFloat($('sell-credito-abono')?.value) || 0) === 0) {
+            $('sell-credito-abono').value = costoProv + costoEnvio;
+        }
+        updateCreditShieldUI();
+    });
+
+    ['sell-credito-abono', 'sell-costo-envio', 'sell-precio-final'].forEach(id => {
+        $(id)?.addEventListener('input', updateCreditShieldUI);
+    });
+
+    $('btn-usar-inicial-blindada')?.addEventListener('click', () => {
+        if (!currentSoldProduct) return;
+        const costoProv = currentSoldProduct.costoProveedor || 0;
+        const envioVal = parseFloat($('sell-costo-envio')?.value);
+        const costoEnvio = !isNaN(envioVal) ? envioVal : (currentSoldProduct.costoEnvio || 0);
+        if ($('sell-credito-abono')) {
+            $('sell-credito-abono').value = costoProv + costoEnvio;
+            updateCreditShieldUI();
+        }
+    });
+
+    $('btn-sumar-recargo-credito')?.addEventListener('click', () => {
+        if (!currentSoldProduct) return;
+        const basePrice = currentSoldProduct.precioVenta || 0;
+        const recargo = Math.round((basePrice * 1.10) / 1000) * 1000;
+        if ($('sell-precio-final')) {
+            $('sell-precio-final').value = recargo;
+            updateCreditShieldUI();
+        }
+    });
+
+    $('pagare-modal-close')?.addEventListener('click', () => $('pagare-modal')?.classList.add('hidden'));
+    $('pagare-modal')?.addEventListener('click', e => { if (e.target === $('pagare-modal')) $('pagare-modal').classList.add('hidden'); });
 }
 
 window.promptSell = (id, preselectedSize = null, pedidoId = null) => {
@@ -682,6 +777,7 @@ window.promptSell = (id, preselectedSize = null, pedidoId = null) => {
     if (costoEnvioInput) {
         costoEnvioInput.value = prod.costoEnvio || 0;
     }
+    updateCreditShieldUI();
     
     // Convert legacy tallas to Proveedor if missing
     if (!prod.tallasBodega && !prod.tallasProveedor && prod.tallas) {
@@ -737,23 +833,36 @@ async function confirmSale() {
     const metodo = $('sell-metodo-select')?.value || 'contado';
     if (!select?.value || !currentSoldProduct) { alert('Selecciona la talla vendida.'); return; }
     
-    let cuotasCount = 1, frecuenciaDias = 15, abonoInicial = 0;
+    let cuotasCount = 1, frecuenciaDias = 15, abonoInicial = 0, modalidadCredito = 'blindado';
     let clienteNombre = $('sell-cliente-nombre') ? $('sell-cliente-nombre').value.trim() : '';
     let clienteTelefono = $('sell-cliente-telefono') ? $('sell-cliente-telefono').value.trim() : '';
     let clienteInfo = document.getElementById('sell-cliente-info') ? document.getElementById('sell-cliente-info').value.trim() : '';
+
+    const size = select.value, prod = currentSoldProduct;
+    const prov = providers.find(p => p.id === prod.proveedorId);
+    const finalEnvioInput = $('sell-costo-envio') ? parseFloat($('sell-costo-envio').value) : NaN;
+    const finalEnvio = !isNaN(finalEnvioInput) ? finalEnvioInput : (prod.costoEnvio || 0);
+    const costoTotal = (prod.costoProveedor || 0) + finalEnvio;
+    
+    const finalPriceInput = $('sell-precio-final') ? parseFloat($('sell-precio-final').value) : NaN;
+    const finalPrice = !isNaN(finalPriceInput) ? finalPriceInput : (prod.precioVenta || 0);
 
     if (metodo === 'credito') {
         cuotasCount = parseInt($('sell-credito-cuotas').value) || 1;
         frecuenciaDias = parseInt($('sell-credito-frecuencia').value) || 15;
         abonoInicial = parseFloat($('sell-credito-abono').value) || 0;
+        modalidadCredito = $('sell-credito-modalidad')?.value || 'blindado';
         
         if (!clienteNombre || !clienteTelefono) {
-            alert('Debes ingresar el nombre y teléfono del cliente para fiar.');
+            alert('Debes ingresar el nombre y teléfono del cliente para registrar un crédito o plan separe.');
             return;
+        }
+        if (modalidadCredito === 'blindado' && abonoInicial < costoTotal && costoTotal > 0) {
+            const seguir = confirm(`⚠️ ESCUDO FINANCIERO:\n\nEn "Inicial Blindada", el abono (${formatCOP(abonoInicial)}) es menor al costo total del par (${formatCOP(costoTotal)}).\n\n¿Deseas continuar de todos modos o prefieres cancelar y cambiarlo a "Plan Separe 60/40"?`);
+            if (!seguir) return;
         }
     }
 
-    const size = select.value, prod = currentSoldProduct;
     const sourceDict = origen === 'bodega' ? prod.tallasBodega : prod.tallasProveedor;
     
     if (!sourceDict[size] || sourceDict[size] <= 0) { alert('Sin stock en ' + origen); return; }
@@ -766,17 +875,11 @@ async function confirmSale() {
         prod.tallas[size] -= 1;
         if (prod.tallas[size] === 0) delete prod.tallas[size];
     }
-
-    const prov = providers.find(p => p.id === prod.proveedorId);
-    const finalEnvioInput = $('sell-costo-envio') ? parseFloat($('sell-costo-envio').value) : NaN;
-    const finalEnvio = !isNaN(finalEnvioInput) ? finalEnvioInput : (prod.costoEnvio || 0);
-    const costoTotal = (prod.costoProveedor || 0) + finalEnvio;
-    
-    const finalPriceInput = $('sell-precio-final') ? parseFloat($('sell-precio-final').value) : NaN;
-    const finalPrice = !isNaN(finalPriceInput) ? finalPriceInput : (prod.precioVenta || 0);
     
     const ganancia = finalPrice - costoTotal;
     const now = Date.now();
+    const esPlanSepareRetenido = (metodo === 'credito' && modalidadCredito === 'separe');
+    let createdCreditoId = null;
 
     try {
         const batch = db.batch();
@@ -789,6 +892,7 @@ async function confirmSale() {
             proveedor: prov ? prov.nombre : 'Local', 
             origen: origen,
             metodo: metodo,
+            modalidadCredito: metodo === 'credito' ? modalidadCredito : null,
             clienteNombre: clienteNombre,
             clienteTelefono: clienteTelefono,
             clienteInfo: clienteInfo,
@@ -819,16 +923,28 @@ async function confirmSale() {
             }
 
             const creditoRef = db.collection('creditos').doc();
+            createdCreditoId = creditoRef.id;
             batch.set(creditoRef, {
                 clienteNombre,
                 clienteTelefono,
+                clienteInfo,
                 productoId: prod.id,
                 nombreProducto: prod.nombre,
+                talla: size,
+                origen: origen,
+                proveedorId: prod.proveedorId || '',
+                costoZapato: Number(prod.costoProveedor || 0),
+                costoEnvio: Number(finalEnvio),
                 precioTotal: finalPrice,
                 costoTotal: costoTotal,
                 abonoInicial,
                 saldoPendiente: saldoRestante,
                 cuotas: cuotasArray,
+                frecuenciaDias,
+                modalidad: modalidadCredito,
+                estadoEntrega: esPlanSepareRetenido ? 'retenido_separe' : 'despachado',
+                proveedorPagado: esPlanSepareRetenido ? false : true,
+                ventaId: ventaRef.id,
                 estado: 'activo',
                 fechaVenta: now
             });
@@ -839,14 +955,16 @@ async function confirmSale() {
                 tipo: 'ingreso', concepto: 'Venta Contado: ' + prod.nombre, monto: Number(finalPrice), fecha: now, refId: ventaRef.id
             });
         } else if (metodo === 'credito' && abonoInicial > 0) {
+            const etiquetaInicial = esPlanSepareRetenido ? 'Abono Inicial Plan Separe: ' : 'Abono Inicial Crédito: ';
             batch.set(db.collection('transacciones').doc(), {
-                tipo: 'ingreso', concepto: 'Abono Inicial Crédito: ' + prod.nombre, monto: Number(abonoInicial), fecha: now, refId: ventaRef.id
+                tipo: 'ingreso', concepto: etiquetaInicial + prod.nombre + ' (' + clienteNombre + ')', monto: Number(abonoInicial), fecha: now, refId: ventaRef.id
             });
         }
         
-        if (origen === 'proveedor') {
+        // Si es Plan Separe, NO descontamos de Caja el pago al proveedor todavía hasta que alcance el equilibrio y se despache
+        if (origen === 'proveedor' && !esPlanSepareRetenido) {
             batch.set(db.collection('transacciones').doc(), {
-                                tipo: 'egreso',
+                tipo: 'egreso',
                 concepto: `Pago Proveedor (Bajo pedido): ${prod.nombre} - Talla ${size} (Zapato ${formatCOP(prod.costoProveedor || 0)} + Envío ${formatCOP(finalEnvio)})`,
                 monto: Number(costoTotal),
                 costoZapato: Number(prod.costoProveedor || 0),
@@ -876,8 +994,31 @@ async function confirmSale() {
         if (document.getElementById('sell-cliente-info')) document.getElementById('sell-cliente-info').value = '';
         if ($('sell-credito-abono')) $('sell-credito-abono').value = '0';
         
-        // Notificar venta registrada
-        alert(`¡Venta registrada (${metodo})!`);
+        // Si fue venta a crédito o Plan Separe, ofrecer enviar el Link de Pagaré Digital al cliente
+        if (metodo === 'credito' && createdCreditoId) {
+            const enviarPagare = confirm(`✅ ¡Crédito registrado exitosamente!\n\n¿Deseas enviarle ahora por WhatsApp a ${clienteNombre} el Link del Pagaré Digital y Verificación (Cédula + 2 Referencias + Firma en pantalla)?`);
+            if (enviarPagare) {
+                enviarLinkPagareCliente(createdCreditoId, {
+                    id: createdCreditoId,
+                    clienteNombre,
+                    clienteTelefono,
+                    nombreProducto: `${prod.nombre} (Talla ${size})`,
+                    precioTotal: finalPrice,
+                    abonoInicial,
+                    saldoPendiente: finalPrice - abonoInicial,
+                    cuotas: Array(cuotasCount),
+                    frecuenciaDias,
+                    modalidad: modalidadCredito
+                });
+            }
+        } else {
+            alert(`¡Venta registrada (${metodo})!`);
+        }
+
+        // Si es Plan Separe Retenido, aún no se pide al proveedor
+        if (esPlanSepareRetenido) {
+            return;
+        }
 
         // Si el proveedor tiene WhatsApp configurado y la venta o pedido requiere notificar al proveedor
         if (prov && prov.telefono) {
@@ -893,7 +1034,6 @@ async function confirmSale() {
 
             const pedirAlProv = confirm(`¿Deseas pedir este par al WhatsApp del proveedor (${prov.nombre})?\n\n(La foto quedó copiada en el portapapeles: en WhatsApp solo dale Pegar).`);
             if (pedirAlProv) {
-                // Intentar copiar la imagen al portapapeles para pegarla en WhatsApp
                 if (fotoRaw && navigator.clipboard && window.ClipboardItem) {
                     fetch(fotoRaw)
                         .then(res => res.blob())
@@ -902,7 +1042,6 @@ async function confirmSale() {
                                 const item = new ClipboardItem({ [blob.type || 'image/jpeg']: blob });
                                 await navigator.clipboard.write([item]);
                             } catch (e) {
-                                // Fallback: si el navegador requiere image/png, convertir vía Canvas
                                 const img = new Image();
                                 img.crossOrigin = 'anonymous';
                                 const loaded = new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
@@ -1276,6 +1415,233 @@ function getTotalStock(prod) {
 // creditos ya declarado arriba
 let currentAbonoCredito = null;
 
+function findVerificacionForCredito(c) {
+    if (!c) return null;
+    const byId = verificacionesCredito.find(v => v.creditoId === c.id);
+    if (byId) return byId;
+    const telClean = String(c.clienteTelefono || '').replace(/\D/g, '');
+    if (telClean.length >= 7) {
+        return verificacionesCredito.find(v => String(v.clienteTelefono || '').replace(/\D/g, '') === telClean) || null;
+    }
+    return null;
+}
+
+window.enviarLinkPagareCliente = function(creditoId, customObj = null) {
+    const c = customObj || creditos.find(x => x.id === creditoId);
+    if (!c) return;
+    let telLimpio = String(c.clienteTelefono || '').replace(/\D/g, '');
+    if (telLimpio.length === 10 && !telLimpio.startsWith('57')) telLimpio = '57' + telLimpio;
+
+    const frecDias = c.frecuenciaDias || 15;
+    const frecTexto = frecDias === 7 ? 'Semanal' : (frecDias === 30 ? 'Mensual' : 'Quincenal');
+    const cuotasNum = Array.isArray(c.cuotas) ? c.cuotas.length : 1;
+    const mod = c.modalidad || 'blindado';
+
+    const baseUrl = window.location.origin + window.location.pathname.replace(/admin\.html.*$/i, '') + 'credito.html';
+    const qs = new URLSearchParams({
+        id: c.id || creditoId,
+        n: c.clienteNombre || '',
+        t: c.clienteTelefono || '',
+        p: c.nombreProducto + (c.talla ? ` (Talla ${c.talla})` : ''),
+        m: String(c.precioTotal || 0),
+        a: String(c.abonoInicial || 0),
+        s: String(c.saldoPendiente || 0),
+        c: String(cuotasNum),
+        f: frecTexto,
+        mod: mod
+    });
+    const fullLink = `${baseUrl}?${qs.toString()}`;
+
+    const modNombre = mod === 'separe' ? 'Plan Separe 60/40' : 'Crédito O\'G YAM CREPS';
+    const msg = `¡Hola *${c.clienteNombre}*! 👟🔥\n\nPara activar y respaldar tu *${modNombre}* por tus *${c.nombreProducto}*, por favor completa tu verificación rápida y firma digital en pantalla en este enlace oficial:\n\n👉 ${fullLink}\n\n(Toma menos de 1 minuto desde tu celular. Apenas firmes, dale al botón verde para avisarnos).`;
+    window.open(`https://wa.me/${telLimpio}?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+window.verExpedientePagare = function(creditoId) {
+    const c = creditos.find(x => x.id === creditoId);
+    const v = findVerificacionForCredito(c);
+    if (!v) {
+        alert('Este cliente aún no ha firmado el pagaré digital.');
+        return;
+    }
+    const body = $('pagare-modal-body');
+    if (!body) return;
+
+    const cleanTel = t => {
+        let d = String(t || '').replace(/\D/g, '');
+        if (d.length === 10 && !d.startsWith('57')) d = '57' + d;
+        return d;
+    };
+
+    const ref1Tel = cleanTel(v.ref1Telefono);
+    const ref2Tel = cleanTel(v.ref2Telefono);
+    const prodNom = c ? c.nombreProducto : 'calzado en O\'G YAM CREPS';
+    const saldoTxt = c ? formatCOP(c.saldoPendiente) : '';
+
+    const msgValidar1 = encodeURIComponent(`¡Hola ${v.ref1Nombre}! Te saludamos de la tienda *O'G YAM CREPS*. *${v.clienteNombre}* te registró como contacto de respaldo (${v.ref1Parentesco}) para adquirir ${prodNom}. ¿Nos confirmas por favor que lo(a) conoces? ¡Muchas gracias!`);
+    const msgCobro1 = encodeURIComponent(`Hola ${v.ref1Nombre}, te escribimos de *O'G YAM CREPS*. Nos comunicamos contigo como contacto de respaldo autorizado en el pagaré firmado por *${v.clienteNombre}*, ya que presenta un saldo vencido de *${saldoTxt}* y no hemos logrado respuesta en su número principal. ¿Podrías por favor pedirle que se comunique con nosotros hoy mismo? Gracias.`);
+
+    const msgValidar2 = encodeURIComponent(`¡Hola ${v.ref2Nombre}! Te saludamos de la tienda *O'G YAM CREPS*. *${v.clienteNombre}* te registró como contacto de respaldo (${v.ref2Parentesco}) para adquirir ${prodNom}. ¿Nos confirmas por favor que lo(a) conoces? ¡Muchas gracias!`);
+    const msgCobro2 = encodeURIComponent(`Hola ${v.ref2Nombre}, te escribimos de *O'G YAM CREPS*. Nos comunicamos contigo como contacto de respaldo autorizado en el pagaré firmado por *${v.clienteNombre}*, ya que presenta un saldo vencido de *${saldoTxt}* y no hemos logrado respuesta en su número principal. ¿Podrías por favor pedirle que se comunique con nosotros hoy mismo? Gracias.`);
+
+    body.innerHTML = `
+        <div style="background:#111; border:1px solid #2e2e2e; border-radius:8px; padding:0.9rem; margin-bottom:0.9rem; font-size:0.88rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">
+                <strong style="color:var(--neon-green); font-size:1rem;">👤 ${v.clienteNombre}</strong>
+                <span style="background:rgba(0,255,136,0.14); color:var(--neon-green); padding:2px 8px; border-radius:999px; font-size:0.75rem; font-weight:700;">C.C. ${v.clienteCedula}</span>
+            </div>
+            <p style="margin:0.2rem 0;">📍 <strong>Ciudad/Barrio:</strong> ${v.clienteCiudad}</p>
+            <p style="margin:0.2rem 0;">🏠 <strong>Dirección exacta:</strong> ${v.clienteDireccion}</p>
+            <p style="margin:0.2rem 0;">📞 <strong>WhatsApp:</strong> ${v.clienteTelefono}</p>
+            <p style="margin:0.2rem 0; color:#888; font-size:0.78rem;">🕒 Firmado el: ${formatDate(v.fechaFirma)}</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.7rem; margin-bottom:0.9rem;">
+            <div style="background:#111; border:1px solid #2e2e2e; border-radius:8px; padding:0.6rem; text-align:center;">
+                <span style="font-size:0.75rem; color:#aaa; display:block; margin-bottom:0.35rem;">🪪 Cédula de Ciudadanía</span>
+                ${v.fotoCedula ? `<img src="${v.fotoCedula}" style="max-width:100%; max-height:160px; border-radius:6px; border:1px solid #333;">` : '<em>Sin foto</em>'}
+            </div>
+            <div style="background:#111; border:1px solid #2e2e2e; border-radius:8px; padding:0.6rem; text-align:center;">
+                <span style="font-size:0.75rem; color:#aaa; display:block; margin-bottom:0.35rem;">🤳 Selfie / Verificación</span>
+                ${v.fotoSelfie ? `<img src="${v.fotoSelfie}" style="max-width:100%; max-height:160px; border-radius:6px; border:1px solid #333;">` : '<em>Sin foto</em>'}
+            </div>
+        </div>
+
+        <div style="background:#111; border:1px solid #2e2e2e; border-radius:8px; padding:0.85rem; margin-bottom:0.9rem;">
+            <h4 style="margin:0 0 0.6rem 0; color:#00e5ff; font-size:0.9rem;">👥 Contactos de Respaldo ("Co-deudores Morales")</h4>
+            
+            <div style="padding:0.65rem; background:#181818; border-radius:6px; margin-bottom:0.6rem; border-left:3px solid var(--neon-green);">
+                <div style="font-size:0.85rem;"><strong>1. ${v.ref1Nombre}</strong> <span style="color:#aaa;">(${v.ref1Parentesco})</span> — 📞 ${v.ref1Telefono}</div>
+                <div style="display:flex; gap:0.4rem; margin-top:0.45rem; flex-wrap:wrap;">
+                    <a href="https://wa.me/${ref1Tel}?text=${msgValidar1}" target="_blank" class="btn-action" style="background:#25D366; color:#000; text-decoration:none; font-size:0.75rem; padding:0.3rem 0.65rem; font-weight:700;">✅ Validar Ref #1</a>
+                    <a href="https://wa.me/${ref1Tel}?text=${msgCobro1}" target="_blank" class="btn-action" style="background:#ff4d4d; color:#fff; text-decoration:none; font-size:0.75rem; padding:0.3rem 0.65rem; font-weight:700;">🚨 Cobrar vía Ref #1</a>
+                </div>
+            </div>
+
+            <div style="padding:0.65rem; background:#181818; border-radius:6px; border-left:3px solid #00e5ff;">
+                <div style="font-size:0.85rem;"><strong>2. ${v.ref2Nombre}</strong> <span style="color:#aaa;">(${v.ref2Parentesco})</span> — 📞 ${v.ref2Telefono}</div>
+                <div style="display:flex; gap:0.4rem; margin-top:0.45rem; flex-wrap:wrap;">
+                    <a href="https://wa.me/${ref2Tel}?text=${msgValidar2}" target="_blank" class="btn-action" style="background:#25D366; color:#000; text-decoration:none; font-size:0.75rem; padding:0.3rem 0.65rem; font-weight:700;">✅ Validar Ref #2</a>
+                    <a href="https://wa.me/${ref2Tel}?text=${msgCobro2}" target="_blank" class="btn-action" style="background:#ff4d4d; color:#fff; text-decoration:none; font-size:0.75rem; padding:0.3rem 0.65rem; font-weight:700;">🚨 Cobrar vía Ref #2</a>
+                </div>
+            </div>
+        </div>
+
+        <div style="background:#fff; color:#000; border-radius:8px; padding:0.75rem; text-align:center; margin-bottom:0.9rem;">
+            <div style="font-size:0.75rem; font-weight:700; color:#333; margin-bottom:0.3rem;">✍️ FIRMA DIGITAL ESTAMPADA POR EL DEUDOR</div>
+            <img src="${v.firmaDataUrl}" style="max-width:100%; max-height:120px; border-bottom:1px solid #000;">
+            <div style="font-size:0.72rem; color:#444; margin-top:0.25rem;">${v.clienteNombre} — C.C. ${v.clienteCedula}</div>
+        </div>
+
+        <button type="button" class="btn-primary w-full" onclick="imprimirPagare('${v.id}', '${c ? c.id : ''}')">🖨️ Imprimir / Guardar Pagaré en PDF</button>
+    `;
+
+    $('pagare-modal')?.classList.remove('hidden');
+};
+
+window.imprimirPagare = function(verifId, creditoId) {
+    const v = verificacionesCredito.find(x => x.id === verifId);
+    const c = creditos.find(x => x.id === creditoId);
+    if (!v) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const prod = c ? c.nombreProducto : 'Calzado O\'G YAM CREPS';
+    const total = c ? formatCOP(c.precioTotal) : '-';
+    const saldo = c ? formatCOP(c.saldoPendiente) : '-';
+    win.document.write(`
+        <html><head><title>Pagaré Digital - ${v.clienteNombre}</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #111; max-width: 680px; margin: 0 auto; }
+            h2 { margin-bottom: 4px; }
+            .box { border: 1px solid #333; padding: 12px; border-radius: 6px; margin-bottom: 14px; font-size: 13px; }
+            .photos { display: flex; gap: 12px; margin-bottom: 14px; }
+            .photos img { max-height: 140px; border: 1px solid #999; border-radius: 4px; }
+        </style></head><body>
+            <h2>O'G YAM CREPS — PAGARÉ Y COMPROMISO DE PAGO</h2>
+            <p style="font-size:12px; color:#555;">Fecha de Firma Digital: ${formatDate(v.fechaFirma)} | ID Verificación: ${v.id}</p>
+            <div class="box">
+                <strong>DEUDOR:</strong> ${v.clienteNombre} — <strong>C.C.:</strong> ${v.clienteCedula}<br>
+                <strong>Teléfono:</strong> ${v.clienteTelefono} | <strong>Ciudad:</strong> ${v.clienteCiudad}<br>
+                <strong>Dirección:</strong> ${v.clienteDireccion}<br>
+                <strong>Producto:</strong> ${prod} | <strong>Valor Total:</strong> ${total} | <strong>Saldo Pendiente:</strong> ${saldo}
+            </div>
+            <div class="box">
+                <strong>REFERENCIAS AUTORIZADAS PARA COBRO EN CASO DE MORA:</strong><br>
+                1. ${v.ref1Nombre} (${v.ref1Parentesco}) — Tel: ${v.ref1Telefono}<br>
+                2. ${v.ref2Nombre} (${v.ref2Parentesco}) — Tel: ${v.ref2Telefono}
+            </div>
+            <div class="box">
+                Declaro que reconozco deber y me obligo a pagar incondicionalmente a favor de <strong>O'G YAM CREPS</strong> las cuotas pactadas. En caso de mora, acepto un recargo de $5.000 COP por día de retraso y autorizo expresamente el contacto a mis referencias registradas. En modalidad Plan Separe, reconozco que el abandono por más de 30 días no da lugar a devolución de efectivo y causa un 30% de gasto administrativo y de reserva.
+            </div>
+            <div class="photos">
+                ${v.fotoCedula ? `<div><small>Cédula:</small><br><img src="${v.fotoCedula}"></div>` : ''}
+                ${v.fotoSelfie ? `<div><small>Selfie:</small><br><img src="${v.fotoSelfie}"></div>` : ''}
+            </div>
+            <div style="text-align:center; border-top:1px solid #333; padding-top:10px; margin-top:20px;">
+                <img src="${v.firmaDataUrl}" style="max-height:95px;"><br>
+                <strong>FIRMA DEL DEUDOR: ${v.clienteNombre} (C.C. ${v.clienteCedula})</strong>
+            </div>
+            <script>window.onload = () => { window.print(); };<\/script>
+        </body></html>
+    `);
+    win.document.close();
+};
+
+window.despacharPlanSepare = async function(creditoId) {
+    const c = creditos.find(x => x.id === creditoId);
+    if (!c) return;
+    const totalPagado = (c.precioTotal || 0) - (c.saldoPendiente || 0);
+    const costo = c.costoTotal || 0;
+    if (totalPagado < costo) {
+        const confirmarAnticipado = confirm(`⚠️ El cliente lleva abonado ${formatCOP(totalPagado)}, aún faltan ${formatCOP(costo - totalPagado)} para cubrir el costo del proveedor (${formatCOP(costo)}).\n\n¿Estás seguro de despacharlo antes del punto de equilibrio?`);
+        if (!confirmarAnticipado) return;
+    } else {
+        if (!confirm(`🚀 ¡Punto de equilibrio cubierto!\n\n¿Confirmas marcar este Plan Separe como DESPACHADO y registrar el pago al proveedor en Caja?`)) return;
+    }
+
+    try {
+        const batch = db.batch();
+        const credRef = db.collection('creditos').doc(c.id);
+        batch.update(credRef, {
+            estadoEntrega: 'despachado',
+            proveedorPagado: true,
+            fechaDespacho: Date.now()
+        });
+
+        const prod = products.find(p => p.id === c.productoId);
+        const prov = providers.find(pr => pr.id === (c.proveedorId || prod?.proveedorId));
+
+        if ((c.origen === 'proveedor' || !c.origen) && !c.proveedorPagado && costo > 0) {
+            batch.set(db.collection('transacciones').doc(), {
+                tipo: 'egreso',
+                concepto: `Pago Proveedor (Despacho Plan Separe): ${c.nombreProducto} (${c.clienteNombre})`,
+                monto: Number(costo),
+                costoZapato: Number(c.costoZapato || prod?.costoProveedor || 0),
+                costoEnvio: Number(c.costoEnvio || prod?.costoEnvio || 0),
+                proveedor: prov ? prov.nombre : 'Local',
+                fecha: Date.now(),
+                refId: c.id
+            });
+        }
+
+        await batch.commit();
+        alert('✅ Plan Separe marcado como DESPACHADO.');
+
+        if (prov && prov.telefono && prod) {
+            let telLimpio = prov.telefono.toString().replace(/\D/g, '');
+            if (telLimpio.length === 10 && !telLimpio.startsWith('57')) telLimpio = '57' + telLimpio;
+            const refTexto = prod.codigo ? `Ref: *${prod.codigo}*` : `*${prod.nombre}*`;
+            const waMsg = `Buenas, para pedir:\n\n🔖 ${refTexto}\n📏 Talla: *${c.talla || ''}*`;
+            const fotoRaw = (prod.fotos && prod.fotos.length > 0) ? prod.fotos[0] : (prod.foto || '');
+            if (confirm(`¿Deseas pedir este par ahora al WhatsApp del proveedor (${prov.nombre})?`)) {
+                window.open(`https://api.whatsapp.com/send?phone=${telLimpio}&text=${encodeURIComponent(waMsg)}`, '_blank');
+            }
+        }
+    } catch (e) {
+        alert('Error al despachar Plan Separe: ' + e.message);
+    }
+};
+
 window.renderCreditos = function() {
     const list = $('creditos-list');
     const totalEl = $('kpi-creditos-total');
@@ -1317,8 +1683,10 @@ window.renderCreditos = function() {
         if (nextCuota) {
             const daysDiff = Math.floor((nextCuota.fechaVencimiento - now) / (1000 * 60 * 60 * 24));
             if (daysDiff < 0) {
-                statusHtml = `<span style="color:#ff3333; font-weight:bold;">Vencido (Mora de ${Math.abs(daysDiff)} días)</span>`;
-                statusMsg = `Hola ${c.clienteNombre}, tu cuota de ${formatCOP(nextCuota.monto)} por tus ${c.nombreProducto} venció hace ${Math.abs(daysDiff)} días. Por favor realiza el pago lo antes posible para evitar recargos por mora.`;
+                const moraDias = Math.abs(daysDiff);
+                const recargoSugerido = moraDias * 5000;
+                statusHtml = `<span style="color:#ff3333; font-weight:bold;">Vencido (Mora de ${moraDias} días · Recargo sugerido ${formatCOP(recargoSugerido)})</span>`;
+                statusMsg = `Hola ${c.clienteNombre}, tu cuota de ${formatCOP(nextCuota.monto)} por tus ${c.nombreProducto} venció hace ${moraDias} días. Te recordamos realizar el pago hoy para evitar el incremento de recargos por mora ($5.000/día) y el reporte a los contactos de respaldo registrados en tu pagaré.`;
             } else if (daysDiff <= 3) {
                 statusHtml = `<span style="color:#ffaa00;">Próximo a vencer (${daysDiff} días)</span>`;
                 statusMsg = `Hola ${c.clienteNombre}, te recordamos que tu próxima cuota de ${formatCOP(nextCuota.monto)} por tus ${c.nombreProducto} vence el ${formatDate(nextCuota.fechaVencimiento).split(' ')[0]}. ¡Gracias por tu puntualidad!`;
@@ -1337,26 +1705,67 @@ window.renderCreditos = function() {
         let roiHtml = '';
         if (costo > 0) {
             if (totalPagado < costo) {
-                roiHtml = `<span style="background:#ff333333;color:#ff3333;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Aún no recuperas la inversión">🔴 Déficit (Falta ${formatCOP(costo - totalPagado)} para empatar)</span>`;
+                roiHtml = `<span style="background:#ff333333;color:#ff3333;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Aún no recuperas la inversión">🔴 Déficit (Falta ${formatCOP(costo - totalPagado)} para cubrir costo)</span>`;
             } else if (totalPagado === costo) {
-                roiHtml = `<span style="background:#ffaa0033;color:#ffaa00;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Inversión recuperada">🟡 Equilibrio Alcanzado</span>`;
+                roiHtml = `<span style="background:#ffaa0033;color:#ffaa00;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Inversión recuperada">🟡 Costo Cubierto ($0 riesgo)</span>`;
             } else {
-                roiHtml = `<span style="background:#00ff8833;color:var(--neon-green);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Todo lo nuevo es ganancia">🟢 Ganancia (+${formatCOP(totalPagado - costo)})</span>`;
+                roiHtml = `<span style="background:#00ff8833;color:var(--neon-green);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;" title="Todo lo nuevo es ganancia">🟢 Ganancia Libre (+${formatCOP(totalPagado - costo)})</span>`;
             }
         }
 
+        // Badge de Modalidad y Estado de Entrega (Plan Separe vs Inicial Blindada)
+        let modBadge = '';
+        let separeAlertHtml = '';
+        if (c.modalidad === 'separe') {
+            if (c.estadoEntrega === 'retenido_separe') {
+                modBadge = `<span style="background:rgba(0,229,255,0.15);color:#00e5ff;padding:0.18rem 0.55rem;border-radius:999px;font-size:0.72rem;font-weight:700;border:1px solid #00e5ff55;">🔒 PLAN SEPARE (Retenido)</span>`;
+                const meta60 = Math.max(costo, Math.round((c.precioTotal || 0) * 0.6));
+                if (totalPagado >= costo && costo > 0) {
+                    separeAlertHtml = `<div style="margin-top:0.5rem; padding:0.5rem 0.7rem; background:rgba(0,255,136,0.12); border:1px solid var(--neon-green); border-radius:6px; font-size:0.8rem; color:var(--neon-green);">
+                        🚀 <strong>¡Listo para despachar!</strong> El cliente ya abonó ${formatCOP(totalPagado)} y cubrió el costo del proveedor (${formatCOP(costo)}).
+                    </div>`;
+                } else {
+                    separeAlertHtml = `<div style="margin-top:0.5rem; padding:0.45rem 0.65rem; background:#161616; border:1px dashed #444; border-radius:6px; font-size:0.78rem; color:#bbb;">
+                        ⏳ Retenido en Plan Separe: Lleva abonado <strong>${formatCOP(totalPagado)}</strong>. Meta sugerida para despachar: <strong>${formatCOP(meta60)}</strong>.
+                    </div>`;
+                }
+            } else {
+                modBadge = `<span style="background:rgba(0,255,136,0.14);color:var(--neon-green);padding:0.18rem 0.55rem;border-radius:999px;font-size:0.72rem;font-weight:700;">📦 PLAN SEPARE (Despachado)</span>`;
+            }
+        } else if (c.modalidad === 'blindado') {
+            modBadge = `<span style="background:rgba(0,255,136,0.14);color:var(--neon-green);padding:0.18rem 0.55rem;border-radius:999px;font-size:0.72rem;font-weight:700;border:1px solid rgba(0,255,136,0.4);">🛡️ INICIAL BLINDADA</span>`;
+        } else {
+            modBadge = `<span style="background:#262626;color:#ccc;padding:0.18rem 0.55rem;border-radius:999px;font-size:0.72rem;font-weight:600;">🤝 CRÉDITO</span>`;
+        }
+
+        // Estado del Pagaré Digital y Verificación
+        const verif = findVerificacionForCredito(c);
+        const verifBadge = verif
+            ? `<span style="background:rgba(0,255,136,0.16);color:var(--neon-green);padding:0.2rem 0.55rem;border-radius:4px;font-size:0.75rem;font-weight:700;">✍️ Pagaré Firmado (C.C. ${verif.clienteCedula})</span>`
+            : `<span style="background:rgba(255,170,0,0.15);color:#ffaa00;padding:0.2rem 0.55rem;border-radius:4px;font-size:0.75rem;">⏳ Pendiente Firma Pagaré</span>`;
+
         return `<div class="list-item" style="flex-wrap:wrap; gap:0.8rem; align-items:flex-start;">
-            <div style="flex:1; min-width:200px;">
-                <h4 style="margin:0; color:var(--neon-green);">${c.clienteNombre}</h4>
+            <div style="flex:1; min-width:220px;">
+                <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.25rem;">
+                    <h4 style="margin:0; color:var(--neon-green);">${c.clienteNombre}</h4>
+                    ${modBadge}
+                </div>
                 <p style="margin:0.2rem 0; font-size:0.85rem;">📞 ${c.clienteTelefono}</p>
-                <p style="margin:0; font-size:0.9rem;"><strong>Tenis:</strong> ${c.nombreProducto}</p>
-                <p style="margin:0; font-size:0.9rem;"><strong>Deuda Restante:</strong> ${formatCOP(c.saldoPendiente)} de ${formatCOP(c.precioTotal)}</p>
+                <p style="margin:0; font-size:0.9rem;"><strong>Tenis:</strong> ${c.nombreProducto}${c.talla ? ` (Talla ${c.talla})` : ''}</p>
+                <p style="margin:0; font-size:0.9rem;"><strong>Abonado:</strong> <span style="color:var(--neon-green);">${formatCOP(totalPagado)}</span> · <strong>Resta:</strong> ${formatCOP(c.saldoPendiente)} (de ${formatCOP(c.precioTotal)})</p>
                 <p style="margin:0.2rem 0 0 0; font-size:0.85rem;">Estado: ${statusHtml}</p>
-                <div style="margin-top:0.5rem;">${roiHtml}</div>
+                <div style="margin-top:0.5rem; display:flex; gap:0.4rem; flex-wrap:wrap;">${roiHtml} ${verifBadge}</div>
+                ${separeAlertHtml}
             </div>
-            <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
-                <button class="btn-action sell" onclick="promptAbono('${c.id}')">💰 Registrar Abono</button>                <button class="btn-action" style="background:#ff3333; color:white; border:none;" onclick="deleteCredito('${c.id}')">🗑️ Anular Crédito</button>
-                <a href="https://wa.me/57${c.clienteTelefono}?text=${encodedMsg}" target="_blank" class="btn-action" style="background:#25D366; color:#000; text-decoration:none; text-align:center; padding:0.4rem 1rem;">💬 Enviar WhatsApp</a>
+            <div style="display:flex; flex-direction:column; gap:0.45rem; align-items:flex-end;">
+                <button class="btn-action sell" onclick="promptAbono('${c.id}')">💰 Registrar Abono</button>
+                ${c.estadoEntrega === 'retenido_separe' ? `<button class="btn-action" style="background:#00e5ff; color:#000; border:none; font-weight:700;" onclick="despacharPlanSepare('${c.id}')">📦 Despachar Separe</button>` : ''}
+                ${verif
+                    ? `<button class="btn-action" style="background:#1f2e25; color:var(--neon-green); border:1px solid var(--neon-green); font-weight:700;" onclick="verExpedientePagare('${c.id}')">📄 Ver Pagaré y Refs</button>`
+                    : `<button class="btn-action" style="background:#2b2312; color:#ffaa00; border:1px solid #ffaa00; font-weight:700;" onclick="enviarLinkPagareCliente('${c.id}')">📲 Enviar Link Pagaré</button>`
+                }
+                <a href="https://wa.me/57${c.clienteTelefono}?text=${encodedMsg}" target="_blank" class="btn-action" style="background:#25D366; color:#000; text-decoration:none; text-align:center; padding:0.4rem 1rem;">💬 Cobrar WhatsApp</a>
+                <button class="btn-action" style="background:#ff3333; color:white; border:none;" onclick="deleteCredito('${c.id}')">🗑️ Anular Crédito</button>
             </div>
         </div>`;
     }).join('');

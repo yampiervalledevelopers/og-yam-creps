@@ -28,6 +28,29 @@ rules_version = '2';
 //   - estado: string (required, must be 'pendiente' on public create)
 // Access: Public create only (validated); Authenticated admin full read/write.
 //
+// Collection: verificaciones_credito
+// Document ID: auto-generated
+// Fields (on public create):
+//   - creditoId: string (required, 1..200 chars)
+//   - clienteNombre: string (required, 1..300 chars)
+//   - clienteCedula: string (required, 3..50 chars)
+//   - clienteTelefono: string (required, 5..50 chars)
+//   - clienteDireccion: string (required, 3..500 chars)
+//   - clienteCiudad: string (required, 1..200 chars)
+//   - ref1Nombre: string (required, 1..300 chars)
+//   - ref1Parentesco: string (required, 1..100 chars)
+//   - ref1Telefono: string (required, 5..50 chars)
+//   - ref2Nombre: string (required, 1..300 chars)
+//   - ref2Parentesco: string (required, 1..100 chars)
+//   - ref2Telefono: string (required, 5..50 chars)
+//   - fotoCedula: string (required, 0..350000 chars, compressed base64 data URL)
+//   - fotoSelfie: string (required, 0..350000 chars, compressed base64 data URL)
+//   - firmaDataUrl: string (required, 10..250000 chars, canvas signature data URL)
+//   - aceptaTerminos: bool (required, must be true)
+//   - fechaFirma: number (required, > 0)
+//   - userAgent: string (required, 0..500 chars)
+// Access: Public create only (validated); Authenticated admin full read/write. Never publicly readable/deletable (PII).
+//
 // Collections: proveedores, ventas, creditos, transacciones
 // Document ID: auto-generated
 // Access: Authenticated admin full read/write only.
@@ -95,6 +118,52 @@ service cloud.firestore {
         request.resource.data.estado == 'pendiente';
     }
 
+    // Validate public credit verification submission from credito.html
+    function isValidPublicVerificacion() {
+      let allowedFields = [
+        'creditoId',
+        'clienteNombre',
+        'clienteCedula',
+        'clienteTelefono',
+        'clienteDireccion',
+        'clienteCiudad',
+        'ref1Nombre',
+        'ref1Parentesco',
+        'ref1Telefono',
+        'ref2Nombre',
+        'ref2Parentesco',
+        'ref2Telefono',
+        'fotoCedula',
+        'fotoSelfie',
+        'firmaDataUrl',
+        'aceptaTerminos',
+        'fechaFirma',
+        'userAgent'
+      ];
+      return hasRequiredFields(allowedFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        validStringLength('creditoId', 1, 200) &&
+        validStringLength('clienteNombre', 1, 300) &&
+        validStringLength('clienteCedula', 3, 50) &&
+        validStringLength('clienteTelefono', 5, 50) &&
+        validStringLength('clienteDireccion', 3, 500) &&
+        validStringLength('clienteCiudad', 1, 200) &&
+        validStringLength('ref1Nombre', 1, 300) &&
+        validStringLength('ref1Parentesco', 1, 100) &&
+        validStringLength('ref1Telefono', 5, 50) &&
+        validStringLength('ref2Nombre', 1, 300) &&
+        validStringLength('ref2Parentesco', 1, 100) &&
+        validStringLength('ref2Telefono', 5, 50) &&
+        validStringLength('fotoCedula', 0, 350000) &&
+        validStringLength('fotoSelfie', 0, 350000) &&
+        validStringLength('firmaDataUrl', 10, 250000) &&
+        request.resource.data.aceptaTerminos is bool &&
+        request.resource.data.aceptaTerminos == true &&
+        request.resource.data.fechaFirma is number &&
+        request.resource.data.fechaFirma > 0 &&
+        validStringLength('userAgent', 0, 500);
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -114,6 +183,12 @@ service cloud.firestore {
     // Customer orders via WhatsApp: public can only create valid pending orders, admin has full access
     match /pedidos/{docId} {
       allow create: if isAdmin() || isValidPublicPedido();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Credit verification & digital promissory note: public can only create valid verifications, admin has full access
+    match /verificaciones_credito/{docId} {
+      allow create: if isAdmin() || isValidPublicVerificacion();
       allow read, update, delete: if isAdmin();
     }
 
